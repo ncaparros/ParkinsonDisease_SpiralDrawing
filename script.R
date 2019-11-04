@@ -5,6 +5,7 @@
 if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.org")
 if(!require(ids)) install.packages("ids", repos = "http://cran.us.r-project.org")
 if(!require(tidyr)) install.packages("tidyr", repos = "http://cran.us.r-project.org")
+if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
 
 #---------------
 #Read data
@@ -95,4 +96,12 @@ image(mPwpStatic)
 #Create training and validation sets
 #---------------
 
+patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp)
 
+test_index <- createDataPartition(y = patients$isPwp, 
+                    times = 1, 
+                    p = 0.1, 
+                    list = FALSE)
+
+training_Patients <- patients[-test_index,]
+testing_Patients <- patients[test_index,]
