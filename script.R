@@ -93,7 +93,7 @@ for(i in seq(1, by=1, length=nrow(examplePWPStatic))){
 
 image(mPwpStatic)
 #---------------
-#Create training and validation sets
+#Create training and validation sets with the ids of the patients and the isPwp (is Person With Parkinson) value
 #---------------
 
 patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp)
@@ -105,3 +105,17 @@ test_index <- createDataPartition(y = patients$isPwp,
 
 training_Patients <- patients[-test_index,]
 testing_Patients <- patients[test_index,]
+
+#---------------
+#Data cleaning and additionnal info
+#---------------
+
+#Add speed
+
+
+#---------------
+#Analizing datas
+#Test 1 Static spiral
+#---------------
+
+dfTest1 <- df %>% filter(TestID == 0)
