@@ -123,26 +123,41 @@ AnalyseDf <- data.frame()
 for(test in seq(0,by=1,length=3)){
     for(index in seq(1, by=1, length=nrow(patients))){
       id <- patients[index,]$patientID
-      temp <- completeDf %>% filter(patientID == id & TestID == test) %>% arrange(Timestamp) %>% mutate(DistXY=0, DistXYZ=0)
+      temp <- completeDf %>% 
+        filter(patientID == id & TestID == test) %>% 
+        arrange(Timestamp) %>% 
+        mutate(DistXY=0, DistXYZ=0, CumulDistXY=0, CumulDistXYZ=0)
       
       for(row in seq(2, by=1, length=nrow(temp))){
         temp[row,]$DistXY <- sqrt((temp[row,]$X - temp[row-1,]$X)^2 + (temp[row,]$Y - temp[row-1,]$Y)^2)
         temp[row,]$DistXYZ <- sqrt((temp[row,]$X - temp[row-1,]$X)^2 + (temp[row,]$Y - temp[row-1,]$Y)^2 + (temp[row,]$Z - temp[row-1,]$Z)^2)
+        temp[row,]$CumulDistXY <- temp[row - 1,]$CumulDistXY + temp[row,]$DistXY
+        temp[row,]$CumulDistXYZ <- temp[row - 1,]$CumulDistXYZ + temp[row,]$DistXYZ
       }
       AnalyseDf <- rbind(AnalyseDf, temp)
     }
 }
 
 
-resultsDf <- patients %>% mutate(totalDistXY0 = 0, totalDistXYZ0=0, meanSpeed0 = 0, sdSpeed0 = 0,
-                                 totalDistXY1 = 0, totalDistXYZ1=0, meanSpeed0 = 0, sdSpeed1 = 0,
-                                 totalDistXY2 = 0, totalDistXYZ2=0, meanSpeed2 = 0, sdSpeed2 = 0)
+resultsDf <- patients %>% mutate(totalDistXY0 = 0, totalDistXYZ0=0, time0 = 0, meanSpeed0 = 0, sdSpeed0 = 0,
+                                 totalDistXY1 = 0, totalDistXYZ1=0, time1 = 0, meanSpeed0 = 0, sdSpeed1 = 0,
+                                 totalDistXY2 = 0, totalDistXYZ2=0, time2 = 0, meanSpeed2 = 0, sdSpeed2 = 0,
+                                 meanPressure0 = 0, sdPressure0 =0, meanGripAngle0=0, sdGripAngle0=0,
+                                 meanPressure1 = 0, sdPressure1 =0, meanGripAngle1=0, sdGripAngle1=0,
+                                 meanPressure2 = 0, sdPressure2 =0, meanGripAngle2=0, sdGripAngle2=0)
 for(test in seq(0, by=1, length=3)){
   for(index in seq(1, by=1, length=nrow(resultsDf))){
     patientId <- resultsDf[index,]$patientID
     temp <- AnalyseDf %>% filter(TestID == test & patientID == patientId)
-    resultsDf[index,]["totalDistXY" + index] = sum(temp$DistXY)
-    resultsDf[index,]["totalDistXYZ" + index] = sum(temp$DistXYZ)
+    resultsDf[index,][paste("totalDistXY", test, sep="")] <- sum(temp$DistXY)
+    resultsDf[index,][paste("totalDistXYZ", test, sep="")] <- sum(temp$DistXYZ)
+    resultsDf[index,][paste("time", test, sep="")] <- max(temp$Timestamp)
+    resultsDf[index,][paste("meanSpeed", test, sep="")] <- mean(temp$DistXYZ)
+    resultsDf[index,][paste("sdSpeed", test, sep="")] <- sd(temp$DistXYZ)
+    resultsDf[index,][paste("meanPressure", test, sep="")] <- mean(temp$Pressure)
+    resultsDf[index,][paste("sdPressure", test, sep="")] <- sd(temp$Pressure)
+    resultsDf[index,][paste("meanGripAngle", test, sep="")] <- mean(temp$GripAngle)
+    resultsDf[index,][paste("sdGripAngle", test, sep="")] <- sd(temp$GripAngle)
   }
 }
 
