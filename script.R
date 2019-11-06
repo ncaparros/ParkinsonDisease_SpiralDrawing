@@ -24,7 +24,7 @@ controls <- do.call(rbind, lapply(fileNamesCtrl, function(x) {
                                    x, 
                                    sep="")), 
               patientID = randID, 
-             isPwp = FALSE)
+              isPwp = FALSE)
   }))
 
 filePathPwp = "data/hw_dataset/parkinson/"
@@ -57,10 +57,25 @@ df <- df %>% mutate(X = as.numeric(X),
                     GripAngle = as.numeric(GripAngle),
                     Timestamp = as.numeric(Timestamp))
 
-completeDf <- data.frame()
+#delete useless column Z
+
+nrow(df)
+
+df %>% filter(Y==Z) %>% nrow()
+
+(df %>% filter(Z==Y) %>% nrow()) == nrow(df)
+
+df <- df %>% select(-Z)
+
+completeDf <- data.frame(id=1:100, mat=rep(0,100))
 
 
-patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp)
+patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp) %>% mutate(test0 = FALSE, 
+                                                                                      test1 = FALSE, 
+                                                                                      test2 = FALSE, 
+                                                                                      id0 = 0,
+                                                                                      id1 = 0,
+                                                                                      id2 = 0)
 
 for(test in seq(0, by=1, length=3)){
   for(indPatient in seq(1, by=1, length=nrow(patients))){
@@ -70,6 +85,52 @@ for(test in seq(0, by=1, length=3)){
     completeDf <- rbind(completeDf, temp_df)
   }
 }
+
+#---------------
+#Preparing matrices in list
+#---------------
+
+matricesTest0 <- list()
+matricesTest1 <- list()
+matricesTest2 <- list()
+
+for(test in seq(0, by=1, length=3)){
+  
+  maxX <- df %>% filter(TestID == test) %>% pull(X) %>% max()
+  maxY <- df %>% filter(TestID == test) %>% pull(Y) %>% max()
+  maxDim <- max(maxX, maxY)
+  
+  for(indPatient in seq(1, by=1, length=nrow(patients))){
+    patId <- patients[indPatient,]$patientID
+    temp_df <- df %>% 
+      filter(TestID == test & 
+               patientID == patId) %>% 
+      arrange(Timestamp)
+    
+    temp_mat <- matrix(-1, nrow=maxDim +1, ncol = maxDim +1)
+    
+    for(i in seq(1, by=1, length=nrow(temp_df))){
+      
+      temp_mat[temp_df[i,]$Y, temp_df[i,]$X] = temp_df[i,]$Pressure
+    }
+    
+    if(test == 0){
+      
+      matricesTest0[[paste("id", patId, sep="")]] <- temp_mat
+      
+    } else if(test == 1){
+      
+      matricesTest1[[paste("id", patId, sep="")]] <- temp_mat
+      
+    }else {
+      
+      matricesTest2[[paste("id", patId, sep="")]] <- temp_mat
+      
+    }
+    
+  }
+}
+
 #---------------
 #Visualizing images
 #---------------
@@ -126,34 +187,31 @@ for(test in seq(0,by=1,length=3)){
       temp <- completeDf %>% 
         filter(patientID == id & TestID == test) %>% 
         arrange(Timestamp) %>% 
-        mutate(DistXY=0, DistXYZ=0, CumulDistXY=0, CumulDistXYZ=0)
+        mutate(DistXY=0, CumulDistXY=0)
       
       for(row in seq(2, by=1, length=nrow(temp))){
         temp[row,]$DistXY <- sqrt((temp[row,]$X - temp[row-1,]$X)^2 + (temp[row,]$Y - temp[row-1,]$Y)^2)
-        temp[row,]$DistXYZ <- sqrt((temp[row,]$X - temp[row-1,]$X)^2 + (temp[row,]$Y - temp[row-1,]$Y)^2 + (temp[row,]$Z - temp[row-1,]$Z)^2)
         temp[row,]$CumulDistXY <- temp[row - 1,]$CumulDistXY + temp[row,]$DistXY
-        temp[row,]$CumulDistXYZ <- temp[row - 1,]$CumulDistXYZ + temp[row,]$DistXYZ
       }
       AnalyseDf <- rbind(AnalyseDf, temp)
     }
 }
 
 
-resultsDf <- patients %>% mutate(totalDistXY0 = 0, totalDistXYZ0=0, time0 = 0, meanSpeed0 = 0, sdSpeed0 = 0,
-                                 totalDistXY1 = 0, totalDistXYZ1=0, time1 = 0, meanSpeed0 = 0, sdSpeed1 = 0,
-                                 totalDistXY2 = 0, totalDistXYZ2=0, time2 = 0, meanSpeed2 = 0, sdSpeed2 = 0,
-                                 meanPressure0 = 0, sdPressure0 =0, meanGripAngle0=0, sdGripAngle0=0,
-                                 meanPressure1 = 0, sdPressure1 =0, meanGripAngle1=0, sdGripAngle1=0,
-                                 meanPressure2 = 0, sdPressure2 =0, meanGripAngle2=0, sdGripAngle2=0)
+resultsDf <- patients %>% mutate(totalDistXY0 = 0, time0 = 0, meanSpeed0 = 0, sdSpeed0 = 0,
+                                 totalDistXY1 = 0, time1 = 0, meanSpeed0 = 0, sdSpeed1 = 0,
+                                 totalDistXY2 = 0, time2 = 0, meanSpeed2 = 0, sdSpeed2 = 0,
+                                 meanPressure0 = 0, meanGripAngle0=0, sdGripAngle0=0,
+                                 meanPressure1 = 0, meanGripAngle1=0, sdGripAngle1=0,
+                                 meanPressure2 = 0, meanGripAngle2=0, sdGripAngle2=0)
 for(test in seq(0, by=1, length=3)){
   for(index in seq(1, by=1, length=nrow(resultsDf))){
     patientId <- resultsDf[index,]$patientID
     temp <- AnalyseDf %>% filter(TestID == test & patientID == patientId)
     resultsDf[index,][paste("totalDistXY", test, sep="")] <- sum(temp$DistXY)
-    resultsDf[index,][paste("totalDistXYZ", test, sep="")] <- sum(temp$DistXYZ)
     resultsDf[index,][paste("time", test, sep="")] <- max(temp$Timestamp)
-    resultsDf[index,][paste("meanSpeed", test, sep="")] <- mean(temp$DistXYZ)
-    resultsDf[index,][paste("sdSpeed", test, sep="")] <- sd(temp$DistXYZ)
+    resultsDf[index,][paste("meanSpeed", test, sep="")] <- mean(temp$DistXY)
+    resultsDf[index,][paste("sdSpeed", test, sep="")] <- sd(temp$DistXY)
     resultsDf[index,][paste("meanPressure", test, sep="")] <- mean(temp$Pressure)
     resultsDf[index,][paste("sdPressure", test, sep="")] <- sd(temp$Pressure)
     resultsDf[index,][paste("meanGripAngle", test, sep="")] <- mean(temp$GripAngle)
@@ -180,10 +238,20 @@ training_Patients <- patients[-test_index,]
 testing_Patients <- patients[test_index,]
 
 
-
 #---------------
 #Analizing datas
 #Test 1 Static spiral
 #---------------
 
 dfTest1 <- df %>% filter(TestID == 0)
+
+#---------------
+#Analizing datas
+#Test 2 Dynamic spiral
+#---------------
+
+#---------------
+#Analizing datas
+#Test 3 Stability Test on Certain Point
+#Sd of X, Y + Pressure >0
+#---------------
