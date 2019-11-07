@@ -67,7 +67,7 @@ df %>% filter(Y==Z) %>% nrow()
 
 df <- df %>% select(-Z)
 
-completeDf <- data.frame(id=1:100, mat=rep(0,100))
+completeDf <- data.frame()
 
 
 patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp) %>% mutate(test0 = FALSE, 
@@ -79,9 +79,16 @@ patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp) %>% m
 
 for(test in seq(0, by=1, length=3)){
   for(indPatient in seq(1, by=1, length=nrow(patients))){
-    temp_df <- df %>% filter(TestID == test & patientID==patients[indPatient,]$patientID) %>% arrange(Timestamp)
+    temp_df <- df %>% 
+      filter(TestID == test & 
+               patientID==patients[indPatient,]$patientID) %>% 
+      arrange(Timestamp)
+    
     initialTimestamp = temp_df[1,]$Timestamp
-    temp_df <- temp_df %>% mutate(Timestamp = Timestamp - initialTimestamp)
+    
+    temp_df <- temp_df %>%
+      mutate(Timestamp = Timestamp - initialTimestamp)
+    
     completeDf <- rbind(completeDf, temp_df)
   }
 }
@@ -109,22 +116,47 @@ for(test in seq(0, by=1, length=3)){
     
     temp_mat <- matrix(-1, nrow=maxDim +1, ncol = maxDim +1)
     
-    for(i in seq(1, by=1, length=nrow(temp_df))){
+    temp_mat[temp_df[1,]$Y, temp_df[1,]$X] = temp_df[1,]$Pressure
+    
+    n <- 1
+    sum <- temp_df[1,]$Pressure
+    
+    for(i in seq(2, by=1, length=nrow(temp_df))){
       
-      temp_mat[temp_df[i,]$Y, temp_df[i,]$X] = temp_df[i,]$Pressure
+      if(temp_df[i,]$X == temp_df[i - 1,]$X & temp_df[i,]$Y == temp_df[i - 1,]$Y & i < nrow(temp_df))
+      {
+        n <- n + 1
+        sum <- sum + temp_df[i,]$Pressure
+      }
+      else if(i < nrow(temp_df))
+      {
+        temp_mat[temp_df[i - 1,]$Y, temp_df[i - 1,]$X] = sum/n
+        n <- 1
+        sum = temp_df[i,]$Pressure
+      }
+      else
+      {
+        temp_mat[temp_df[i,]$Y, temp_df[i,]$X] = temp_df[i,]$Pressure
+      }
     }
     
     if(test == 0){
       
       matricesTest0[[paste("id", patId, sep="")]] <- temp_mat
+      patients[indPatient,]$test0 <- TRUE
+      patients[indPatient,]$id0 <- indPatient
       
     } else if(test == 1){
       
       matricesTest1[[paste("id", patId, sep="")]] <- temp_mat
+      patients[indPatient,]$test1 <- TRUE
+      patients[indPatient,]$id1 <- indPatient
       
     }else {
       
       matricesTest2[[paste("id", patId, sep="")]] <- temp_mat
+      patients[indPatient,]$test2 <- TRUE
+      patients[indPatient,]$id2 <- indPatient
       
     }
     
@@ -141,34 +173,7 @@ Healthies <- df %>%
 Pwps <- df %>% 
   filter(isPwp == TRUE)
 
-exampleHealthyStatic <- Healthies %>% 
-  filter(patientID == first(patientID) & 
-           TestID == 0) %>% 
-  select(X, Y, Pressure)
 
-examplePWPStatic <- Pwps %>% 
-  filter(patientID == first(patientID) & 
-           TestID == 0) %>% 
-  select(X, Y, Pressure)
-
-mHealthyStatic <- matrix(0,nrow = 500, ncol = 500)
-
-for(i in seq(1, by=1, length=nrow(exampleHealthyStatic))){
-  
-  mHealthyStatic[exampleHealthyStatic[i,]$X, exampleHealthyStatic[i,]$Y] = exampleHealthyStatic[i,]$Pressure
-}
-
-image(mHealthyStatic)
-
-
-mPwpStatic <- matrix(0,nrow = 500, ncol = 500)
-
-for(i in seq(1, by=1, length=nrow(examplePWPStatic))){
-  
-  mPwpStatic[examplePWPStatic[i,]$X, examplePWPStatic[i,]$Y] = examplePWPStatic[i,]$Pressure
-}
-
-image(mPwpStatic)
 
 #---------------
 #Data cleaning and additionnal info
