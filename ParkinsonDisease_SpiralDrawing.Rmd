@@ -1,0 +1,19 @@
+---
+title: "ParkinsonDisease_SpiralDrawing"
+author: "Nina Caparros"
+date: "11/11/2019"
+date: "`r Sys.Date()`"
+documentclass: "article"
+output: 
+  pdf_document:
+    number_sections: true
+---
+
+\newpage
+\tableofcontents
+\newpage
+
+```{r include=FALSE}
+
+
+```

@@ -10,41 +10,119 @@ if(!require(anytime)) install.packages("anytime", repos = "http://cran.us.r-proj
 if(!require(ggplot2)) install.packages("ggplot2", repos = "http://cran.us.r-project.org")
 if(!require(geiger)) install.packages("geiger", repos = "http://cran.us.r-project.org")
 if(!require(ggpubr)) install.packages("ggpubr", repos = "http://cran.us.r-project.org")
+
 #---------------
-#Read data
+#Read data from cloned GitHub repository
 #---------------
+#If the directory "data" exists in the working directory, we can assume that the github repository has been cloned. 
+#The github repository contains the full dataset, with the small modifications (files moved from on directory to an other). 
+#There is no need to download the data again.
 
-filePathCtrl = "data/hw_dataset/control/"
+#If the directory does not exists, we can assume that only the .R (and/or .Rmd) has been downloaded. 
+#We need to download the dataset, which contains three folders (hw_dataset, hw_drawing, new_dataset).
+#We need to move the files from new_dataset/parkinson into the hw_dataset/parkinson in order to have all the datas together.
+#We will not be using the drawings contained in the hw_drawings folder since the datas are corresponding to the ones in
+#hw_dataset/parkinson.
 
-fileNamesCtrl <- list.files(path = filePathCtrl)
+#In each case, the files are listed, then loaded, read, and stored into two datasets : controls and pwp, before being binded into 
+#a single dataset df. A random patientID is set for each patient, and the boolean isPwp is added (true if healthy, false if parkinson)
 
-controls <- do.call(rbind, lapply(fileNamesCtrl, function(x) {
-  #generate a random id for the patient
-  randID <- proquint_to_int(proquint(), as = "numeric")
-  #add id and isPwp as column
-  t <- cbind(read.table( file = paste(filePathCtrl,
-                                   x, 
-                                   sep="")), 
-              patientID = randID, 
-              isPwp = FALSE)
+if(dir.exists("data")){
+  
+  #File path to the directory containing the datas of the healthy people (controls)
+  filePathCtrl = "data/hw_dataset/control/"
+  
+  #Getting the name of all the files in the directory in order to load the datas
+  fileNamesCtrl <- list.files(path = filePathCtrl)
+  
+  #Reading the data for all the control files
+  controls <- do.call(rbind, lapply(fileNamesCtrl, function(x) {
+    
+    #generate a random id for the patient
+    randID <- proquint_to_int(proquint(), as = "numeric")
+    
+    #add id and isPwp as column
+    t <- cbind(read.table( file = paste(filePathCtrl,
+                                        x, 
+                                        sep="")), 
+               patientID = randID, 
+               isPwp = FALSE)
   }))
+  
+  #File path to the directory containing the datas of the people with Parkinson (PWP)
+  filePathPwp = "data/hw_dataset/parkinson/"
+  
+  #Getting the name of all the files in the directory in order to load the datas
+  fileNamesPwp <- list.files(path = filePathPwp)
+  
+  #Reading the data for all the Parkinson files
+  pwp <- do.call(rbind, lapply(fileNamesPwp, function(x) {
+    
+    #generate a random id for the patient
+    randID <- proquint_to_int(proquint(), as = "numeric")
+    
+    #add id and isPwp as column
+    t <- cbind(read.table( file = paste(filePathPwp,
+                                        x, 
+                                        sep="")), 
+               patientID = randID, 
+               isPwp = TRUE)
+  }))
+  
+  df <- rbind(controls, pwp)
+}else
+  {
+    dirpath = "downloaded_data"
+    dirToMove = "new_dataset/parkinson"
+    dirToKeep = "hw_dataset/parkinson"
+    
+    dl <- tempfile()
+    download.file("https://archive.ics.uci.edu/ml/machine-learning-databases/00395/PARKINSON_HW.zip", dl)
+    
+    dir.create(dirpath)
+    
+    setwd(paste0(getwd(),"/",dirpath))
+    
+    sapply(c(list.files(dirToMove)), function(file){
+      file.copy(paste0(dirToMove,"/",file), dirToKeep)
+    })
+    
+    filePathCtrl = "/hw_dataset/control/"
+    
+    fileNamesCtrl <- list.files(path = paste0(getwd(), "/", filePathCtrl))
+    
+    controls <- do.call(rbind, lapply(fileNamesCtrl, function(x) {
+      #generate a random id for the patient
+      randID <- proquint_to_int(proquint(), as = "numeric")
+      #add id and isPwp as column
+      t <- cbind(read.table( file = paste(filePathCtrl,
+                                          x, 
+                                          sep="")), 
+                 patientID = randID, 
+                 isPwp = FALSE)
+    }))
+    
+    filePathPwp = "/hw_dataset/parkinson/"
+    
+    fileNamesPwp <- list.files(path = paste0(getwd(), "/",filePathPwp))
+    
+    pwp <- do.call(rbind, lapply(fileNamesPwp, function(x) {
+      #generate a random id for the patient
+      randID <- proquint_to_int(proquint(), as = "numeric")
+      #add id and isPwp as column
+      t <- cbind(read.table( file = paste(filePathPwp,
+                                          x, 
+                                          sep="")), 
+                 patientID = randID, 
+                 isPwp = TRUE)
+    }))
+    
+    df <- rbind(controls, pwp)
+    
+    setwd(dir="../")
+    unlink(dirpath, recursive = TRUE)
+}
 
-filePathPwp = "data/hw_dataset/parkinson/"
-
-fileNamesPwp <- list.files(path = filePathPwp)
-
-pwp <- do.call(rbind, lapply(fileNamesPwp, function(x) {
-  #generate a random id for the patient
-  randID <- proquint_to_int(proquint(), as = "numeric")
-  #add id and isPwp as column
-  t <- cbind(read.table( file = paste(filePathPwp,
-                                      x, 
-                                      sep="")), 
-             patientID = randID, 
-             isPwp = TRUE)
-}))
-
-df <- rbind(controls, pwp)
 
 #---------------
 #Prepare Data
