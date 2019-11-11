@@ -1,7 +1,6 @@
 ---
 title: "ParkinsonDisease_SpiralDrawing"
 author: "Nina Caparros"
-date: "11/11/2019"
 date: "`r Sys.Date()`"
 documentclass: "article"
 output: 
@@ -12,7 +11,8 @@ output:
 \newpage
 \tableofcontents
 \newpage
-```{r load libraries, include=FALSE}
+
+```{r load_libraries, include=FALSE}
 if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.org")
 if(!require(ids)) install.packages("ids", repos = "http://cran.us.r-project.org")
 if(!require(tidyr)) install.packages("tidyr", repos = "http://cran.us.r-project.org")
@@ -23,7 +23,57 @@ if(!require(geiger)) install.packages("geiger", repos = "http://cran.us.r-projec
 if(!require(ggpubr)) install.packages("ggpubr", repos = "http://cran.us.r-project.org")
 ```
 
-```{r include=FALSE}
+
+# Introduction
 
 
-```
+
+## Project overview
+
+
+
+## Dataset overview
+
+### Initial study
+
+#### Material
+
+#### Static Spiral Test
+
+#### Dynamic Spiral Test
+
+#### Stability Test on Certain Point
+
+# Method and analysis
+
+## Initial Data
+
+## Data cleaning
+
+### Removing Z
+
+### Cleaning TimeStamp
+
+### Calibrating the samples
+
+## Data analysis
+
+### Global analysis
+
+### Archimedean Spiral
+
+### Static Spiral Test analysis
+
+### Dynamic Spiral Test analysis
+
+### Stability Test on Certain Point analysis
+
+## Issues
+
+## Prediction algorithms
+
+# Results
+
+# Conclusion
+
+# Sources and references
