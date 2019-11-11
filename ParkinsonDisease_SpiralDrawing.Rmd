@@ -8,6 +8,9 @@ output:
     number_sections: true
 ---
 
+\renewcommand\thesubsection{\Roman{subsection}}
+\renewcommand\thesubsubsection{\Alph{subsubsection}}
+
 \newpage
 \tableofcontents
 \newpage
@@ -26,6 +29,23 @@ if(!require(ggpubr)) install.packages("ggpubr", repos = "http://cran.us.r-projec
 
 # Introduction
 
+This report presents the analysis and results of the "Choose Your Own Project" from the HarvardX's ninth course of the Data Science Professional Certificate Program available on edx.org. The chosen thematic is the prediction of the Parkinson's disease diagnosis depending on the results of three tests, measuring the motor performance, the tremor and the hand stability.
+
+## Nota bene
+
+The terms anotated with an asterisk are explained or more detailled in the glossary at the end of the report.
+
+The following section is a quick presentation of the Parkinson's disease but is not mandatory to understand this report.
+
+## Parkinson's disease
+
+Parkinson's disease, sometimes abreviated to PD, is a long-term neurodegenerative disorder. Its cause is unknown, though it is believed to involve genetic (as relatives tend to contract the disease), and/or environmental factors (as pesticides). 
+
+The disease affects mostly the motor system, as tremor, akinesia*, shaking, rigidity, slowness of movement, difficulty with walking,... and as it worsen it can cause depression, anxiety (more than a third of people with Parkinson's disease), emotional and sleep troubles, and in the advanced stages the disease can lead to dementia.
+
+The motor symptoms of the Parkinson's disease (parkinsonian syndrome) are caused by the death of cells, more precisely dopaminergic* neurons, in the substantia nigra\*, a region of the midbrain. The substantia nigra is a basal ganglia* divided into to parts : the pars reticula* and the pars compacta*. It is the part of the brain that plays an important role in reward-seeking, learning and movement. The lack of dopamine (due to the death of those cells, and therefore a smaller substancia nigra) cause emotional troubles as said previously, and since the downsized substancia nigra is connected to the motor cortex (via the pars reticula), it affects badly the parkisonian syndromes.
+
+![Lateral cross-section of the brain](img/brain_pd.jpg)
 
 
 ## Project overview
@@ -72,8 +92,30 @@ if(!require(ggpubr)) install.packages("ggpubr", repos = "http://cran.us.r-projec
 
 ## Prediction algorithms
 
+### Creating training and testing sets
+
+### Parameters
+
+
 # Results
 
 # Conclusion
 
+# Glossary
+
+**Akinesia** :
+
+**Basal ganglia** :
+
+**Dopaminergic** :
+
+**Pars compacta** :
+
+**Pars reticula** :
+
+**Substancia nigra** : 
+
 # Sources and references
+
+Parkinson's disease : https://en.wikipedia.org/wiki/Parkinson%27s_disease
+Brain anatomy : https://en.wikipedia.org/wiki/Midbrain
