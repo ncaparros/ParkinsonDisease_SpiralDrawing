@@ -7,7 +7,9 @@ if(!require(ids)) install.packages("ids", repos = "http://cran.us.r-project.org"
 if(!require(tidyr)) install.packages("tidyr", repos = "http://cran.us.r-project.org")
 if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
 if(!require(anytime)) install.packages("anytime", repos = "http://cran.us.r-project.org")
-
+if(!require(ggplot2)) install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+if(!require(geiger)) install.packages("geiger", repos = "http://cran.us.r-project.org")
+if(!require(ggpubr)) install.packages("ggpubr", repos = "http://cran.us.r-project.org")
 #---------------
 #Read data
 #---------------
@@ -70,28 +72,265 @@ df <- df %>% select(-Z)
 completeDf <- data.frame()
 
 
-patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp) %>% mutate(test0 = FALSE, 
-                                                                                      test1 = FALSE, 
-                                                                                      test2 = FALSE, 
-                                                                                      id0 = 0,
-                                                                                      id1 = 0,
-                                                                                      id2 = 0)
+patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp)
+
+ratiosDf <- df %>% 
+  group_by(patientID, TestID) %>% 
+  summarize(ratio=(max(Y)-min(Y))/(max(X)-min(X)), ratioY=1/(max(Y)-min(Y)), ratioX=1/(max(X)-min(X)), isPwp = first(isPwp))
+
+ratiosDf %>% ggplot() + geom_histogram(aes(TestID, fill=isPwp), stat="count")
+
+ratiosDf %>% filter(TestID==0) %>% nrow
+
+ratiosDf %>% filter(TestID==1) %>% nrow
+
+ratiosDf %>% filter(TestID==2) %>% nrow
+
+
+ratiosDf %>% filter(TestID != 2) %>% 
+  ggplot() +
+  geom_bar(aes(ratio), stat="bin")
+
+ratiosDf %>% filter(TestID == 2) %>% 
+  ggplot()+
+  geom_bar(aes(ratio), stat="bin")
 
 for(test in seq(0, by=1, length=3)){
   for(indPatient in seq(1, by=1, length=nrow(patients))){
-    temp_df <- df %>% 
-      filter(TestID == test & 
-               patientID==patients[indPatient,]$patientID) %>% 
-      arrange(Timestamp)
+    ratioLines <- ratiosDf %>% filter(patientID == patients[indPatient,]$patientID & TestID == test)
     
-    initialTimestamp = temp_df[1,]$Timestamp
-    
-    temp_df <- temp_df %>%
-      mutate(Timestamp = Timestamp - initialTimestamp)
-    
-    completeDf <- rbind(completeDf, temp_df)
+    if(nrow(ratioLines) >=1){
+      
+      ratio <- ratioLines[1,]$ratio
+      ratioY <- ratioLines[1,]$ratioY
+      
+      temp_df <- df %>% 
+        filter(TestID == test & 
+                 patientID==patients[indPatient,]$patientID) %>% 
+        arrange(Timestamp)
+      
+      initialTimestamp = temp_df[1,]$Timestamp
+      
+      pX <- (temp_df[which.min(temp_df$Timestamp),]$X + min(temp_df$X) + max(temp_df$X))/3
+      
+      pY <- (temp_df[which.min(temp_df$Timestamp),]$Y+ min(temp_df$Y) + max(temp_df$Y))/3
+        
+      temp_df <- temp_df %>%
+        mutate(Timestamp = Timestamp - initialTimestamp,
+               X = ((X-pX/2)*ratio)*ratioY*400, 
+               Y = (Y - pY/2)*ratioY*400)
+
+      
+      completeDf <- rbind(completeDf, temp_df)
+    }
+
   }
 }
+
+#Grip Angle
+plotGrip <- completeDf %>% 
+  group_by(patientID) %>% 
+  summarize(meanGrip = mean(GripAngle), sdGrip = sd(GripAngle), isPwp = first(isPwp)) %>% ggplot()
+
+meanGrip <- plotGrip + geom_bar(aes(meanGrip, fill=isPwp), stat="bin")
+
+sdGrip <- plotGrip + geom_bar(aes(sdGrip, fill=isPwp), stat="bin")
+
+ggarrange(meanGrip, sdGrip, common.legend = TRUE, legend="bottom")
+
+#Grip Angle Test 0
+plotGrip <- completeDf %>% 
+  filter(TestID == 0) %>%
+  group_by(patientID) %>% 
+  summarize(meanGrip = mean(GripAngle), sdGrip = sd(GripAngle), isPwp = first(isPwp)) %>% ggplot()
+
+meanGrip <- plotGrip + geom_bar(aes(meanGrip, fill=isPwp), stat="bin")
+
+sdGrip <- plotGrip + geom_bar(aes(sdGrip, fill=isPwp), stat="bin")
+
+ggarrange(meanGrip, sdGrip, common.legend = TRUE, legend="bottom")
+
+#Grip Angle Test 1
+plotGrip <- completeDf %>% 
+  filter(TestID == 1) %>%
+  group_by(patientID) %>% 
+  summarize(meanGrip = mean(GripAngle), sdGrip = sd(GripAngle), isPwp = first(isPwp)) %>% ggplot()
+
+meanGrip <- plotGrip + geom_bar(aes(meanGrip, fill=isPwp), stat="bin")
+
+sdGrip <- plotGrip + geom_bar(aes(sdGrip, fill=isPwp), stat="bin")
+
+ggarrange(meanGrip, sdGrip, common.legend = TRUE, legend="bottom")
+
+#Grip Angle Test 2
+plotGrip <- completeDf %>% 
+  filter(TestID == 2) %>%
+  group_by(patientID) %>% 
+  summarize(meanGrip = mean(GripAngle), sdGrip = sd(GripAngle), isPwp = first(isPwp)) %>% ggplot()
+
+meanGrip <- plotGrip + geom_bar(aes(meanGrip, fill=isPwp), stat="bin")
+
+sdGrip <- plotGrip + geom_bar(aes(sdGrip, fill=isPwp), stat="bin")
+
+ggarrange(meanGrip, sdGrip, common.legend = TRUE, legend="bottom")
+
+#Pressure
+
+completeDf %>%
+  filter(TestID==2 & Pressure > 0 & isPwp == FALSE)
+
+
+completeDf %>% 
+  filter(TestID==2) %>% 
+  group_by(patientID) %>% 
+  summarize(sumPressure = sum(Pressure), 
+            isPwp = first(isPwp)) %>% 
+  ggplot() + 
+  geom_histogram(aes(sumPressure, fill=isPwp))
+
+plot <- completeDf %>% 
+  filter(TestID==2) %>% 
+  group_by(patientID) %>% 
+  summarize(sdX = sd(X), sdY=sd(Y), 
+            isPwp = first(isPwp)) %>% 
+  ggplot()
+
+sdxPlot <- plot + geom_histogram(aes(sdX, fill=isPwp))
+
+sdYPlot <- plot + geom_histogram(aes(sdY, fill=isPwp))
+
+ggarrange(sdxPlot, sdYPlot, common.legend = TRUE, legend="bottom")
+
+#Time
+completeDf %>% 
+  filter(TestID == 2) %>% 
+  group_by(patientID) %>% 
+  summarize(t = max(Timestamp), isPwp = first(isPwp))
+
+completeDf %>% 
+  filter(TestID == 2 & isPwp == FALSE) %>% 
+  group_by(patientID) %>% 
+  summarize(t = max(Timestamp), isPwp = first(isPwp))
+
+#---------------
+#Create training and validation sets with the ids of the patients and the isPwp (is Person With Parkinson) value
+#---------------
+
+
+
+test_index <- createDataPartition(y = patients$isPwp, 
+                                  times = 1, 
+                                  p = 0.1, 
+                                  list = FALSE)
+
+training_Patients <- patients[-test_index,]
+testing_Patients <- patients[test_index,]
+
+
+
+#---------------
+#Building the archimedean spiral
+#---------------
+meanXy <- completeDf %>% filter(TestID != 2 & isPwp==FALSE & Timestamp ==0) %>% summarize(mx = mean(X), my=mean(Y))
+
+params <- function(b){
+  a <- 4
+  t <- seq(0,6*pi, length.out=900)
+  x <- (a + b*t) * (cos(t)) + meanXy$mx
+  y <- (a + b*t) * -(sin(t))+ meanXy$my
+  archimedeanSpiral = data.frame(x,y)
+  
+  tpatients <- training_Patients %>% filter(isPwp == FALSE)
+  
+  m <- 0
+  
+  for(i in seq(1,by=1,length=nrow(tpatients))){
+    area <- geiger:::.area.between.curves(archimedeanSpiral$x, 
+                                          (completeDf %>% filter(TestID==0 & patientID == tpatients[i,]$patientID)) %>% pull(Y), 
+                                        archimedeanSpiral$y)
+    
+    m= m+ area
+  }
+  
+  return(m)
+  
+}
+
+re <- sapply(seq(0,by=0.5,length=50), params)
+
+a <- 4
+b <- 12
+t <- seq(0,6*pi, length.out=2578)
+x <- (a + b*t) * (cos(t)) + meanXy$mx
+y <- (a + b*t) * -(sin(t)) + meanXy$my
+archimedeanSpiral = data.frame(x,y)
+
+datas <- completeDf %>%
+                   filter(TestID==0 & 
+                            patientID %in% c(patients[1,]$patientID))
+
+ggplot() + geom_path(aes(x,y), color="red") + 
+  geom_path(aes(datas$X, datas$Y), lineend="butt")
+
+polygon(c(datas$X, datas$Y), c(x,y), col="red")
+
+
+
+patients <- patients %>% mutate(dist0=NA, dist1=NA,dist2=NA)
+
+tpatients <- patients %>% mutate(diffArea0 = NA)
+
+for(i in seq(1,by=1,length=nrow(tpatients))){
+  
+  datas <- completeDf%>% filter(TestID==0 & patientID == patients[i,]$patientID)
+  if(nrow(datas)>0){
+    t <- seq(0,6*pi, length.out=nrow(datas))
+    x <- (a + b*t) * (cos(t)) + meanXy$mx
+    y <- (a + b*t) * -(sin(t)) + meanXy$my
+    archimedeanSpiral = data.frame(x,y)
+    dist <- cbind(datas, archimedeanSpiral)
+    dist <- dist %>% mutate(dist = sqrt((x-X)^2+(y-Y)^2))
+    patients[i,]$dist0 <- sum(dist$dist)
+  }
+}
+
+for(i in seq(1,by=1,length=nrow(tpatients))){
+  
+  datas <- completeDf%>% filter(TestID==1 & patientID == patients[i,]$patientID)
+  if(nrow(datas)>0){
+    t <- seq(0,6*pi, length.out=nrow(datas))
+    x <- (a + b*t) * (cos(t)) + meanXy$mx
+    y <- (a + b*t) * -(sin(t)) + meanXy$my
+    archimedeanSpiral = data.frame(x,y)
+    dist <- cbind(datas, archimedeanSpiral)
+    dist <- dist %>% mutate(dist = sqrt((x-X)^2+(y-Y)^2))
+    patients[i,]$dist1 <- sum(dist$dist)
+  }
+}
+
+patients %>% ggplot() + geom_histogram(aes(dist0, fill=isPwp))
+patients %>% ggplot() + geom_histogram(aes(dist1, fill=isPwp))
+
+
+for(i in seq(1,by=1,length=nrow(patients))){
+  area <- geiger:::.area.between.curves(archimedeanSpiral$x, 
+                                (completeDf %>% filter(TestID==0 & patientID == patients[i,]$patientID)) %>% pull(Y), 
+                                archimedeanSpiral$y)
+  patients[i,]$diffArea0 <- area
+}
+
+times0 <- completeDf %>% filter(TestID==0) %>%group_by(patientID) %>% summarize(t0 = max(Timestamp))
+times1 <- completeDf %>% filter(TestID==1) %>%group_by(patientID) %>% summarize(t1 = max(Timestamp))
+times2 <- completeDf %>% filter(TestID==2) %>%group_by(patientID) %>% summarize(t2 = max(Timestamp))
+
+patients <- left_join(patients,times0, by="patientID")
+patients <- left_join(patients,times1, by="patientID")
+patients <- left_join(patients,times2, by="patientID")
+
+#PathDist
+#PathOverlap
+
+
 
 #---------------
 #Preparing matrices in list
@@ -203,44 +442,23 @@ for(test in seq(0,by=1,length=3)){
 }
 
 
-resultsDf <- patients %>% mutate(totalDistXY0 = 0, time0 = 0, meanSpeed0 = 0, sdSpeed0 = 0,
-                                 totalDistXY1 = 0, time1 = 0, meanSpeed0 = 0, sdSpeed1 = 0,
-                                 totalDistXY2 = 0, time2 = 0, meanSpeed2 = 0, sdSpeed2 = 0,
-                                 meanPressure0 = 0, meanGripAngle0=0, sdGripAngle0=0,
-                                 meanPressure1 = 0, meanGripAngle1=0, sdGripAngle1=0,
-                                 meanPressure2 = 0, meanGripAngle2=0, sdGripAngle2=0)
+patients <- patients %>% mutate(meanPressure0 = 0, meanGripAngle0=0, sdGripAngle0=0, sdPressure0=0,
+                                 meanPressure1 = 0, meanGripAngle1=0, sdGripAngle1=0, sdPressure1=0,
+                                 meanPressure2 = 0, meanGripAngle2=0, sdGripAngle2=0, sdPressure2=0,)
 for(test in seq(0, by=1, length=3)){
-  for(index in seq(1, by=1, length=nrow(resultsDf))){
-    patientId <- resultsDf[index,]$patientID
-    temp <- AnalyseDf %>% filter(TestID == test & patientID == patientId)
-    resultsDf[index,][paste("totalDistXY", test, sep="")] <- sum(temp$DistXY)
-    resultsDf[index,][paste("time", test, sep="")] <- max(temp$Timestamp)
-    resultsDf[index,][paste("meanSpeed", test, sep="")] <- mean(temp$DistXY)
-    resultsDf[index,][paste("sdSpeed", test, sep="")] <- sd(temp$DistXY)
-    resultsDf[index,][paste("meanPressure", test, sep="")] <- mean(temp$Pressure)
-    resultsDf[index,][paste("sdPressure", test, sep="")] <- sd(temp$Pressure)
-    resultsDf[index,][paste("meanGripAngle", test, sep="")] <- mean(temp$GripAngle)
-    resultsDf[index,][paste("sdGripAngle", test, sep="")] <- sd(temp$GripAngle)
+  for(index in seq(1, by=1, length=nrow(patients))){
+    patientId <- patients[index,]$patientID
+    temp <- completeDf %>% filter(TestID == test & patientID == patientId)
+    patients[index,][paste("meanPressure", test, sep="")] <- mean(temp$Pressure)
+    patients[index,][paste("sdPressure", test, sep="")] <- sd(temp$Pressure)
+    patients[index,][paste("meanGripAngle", test, sep="")] <- mean(temp$GripAngle)
+    patients[index,][paste("sdGripAngle", test, sep="")] <- sd(temp$GripAngle)
   }
 }
 
 
 #Add speed
 
-
-#---------------
-#Create training and validation sets with the ids of the patients and the isPwp (is Person With Parkinson) value
-#---------------
-
-
-
-test_index <- createDataPartition(y = patients$isPwp, 
-                    times = 1, 
-                    p = 0.1, 
-                    list = FALSE)
-
-training_Patients <- patients[-test_index,]
-testing_Patients <- patients[test_index,]
 
 
 #---------------
@@ -260,3 +478,29 @@ dfTest1 <- df %>% filter(TestID == 0)
 #Test 3 Stability Test on Certain Point
 #Sd of X, Y + Pressure >0
 #---------------
+
+patients <- patients %>% mutate(isPwp = as.numeric(isPwp))
+patients <- na.omit(patients)
+
+fit0 <- lm(isPwp ~ dist0 + t0 + meanPressure0 + sdPressure0, data=training_Patients)
+fit1 <- lm(isPwp ~ dist1 + t1 + meanPressure1 + sdPressure1, data=training_Patients)
+fit2 <- lm(isPwp ~ meanPressure2 + sdPressure2, data=training_Patients)
+
+fit0 <- train(isPwp ~ dist0 + t0 + meanPressure0 + sdPressure0, method="knn", data=training_Patients)
+fit1 <- train(isPwp ~ dist1 + t1 + meanPressure1 + sdPressure1, method="knn", data=training_Patients)
+fit2 <- train(isPwp ~ meanPressure2 + sdPressure2, method="knn",data=training_Patients)
+
+rf0 <- randomForest(isPwp ~ dist0 + t0 + meanPressure0 + sdPressure0, data=training_Patients)
+rf1 <- randomForest(isPwp ~ dist1 + t1 + meanPressure1 + sdPressure1, data=training_Patients)
+rf2 <- randomForest(isPwp ~ meanPressure2 + sdPressure2,data=training_Patients)
+
+predict(fit0, testing_Patients)
+predict(fit1, testing_Patients)
+predict(fit2, testing_Patients)
+
+predict(rf0, testing_Patients)
+predict(rf1, testing_Patients)
+predict(rf2, testing_Patients)
+
+sum(yhat == testing_Patients$isPwp)/nrow(testing_Patients)
+
