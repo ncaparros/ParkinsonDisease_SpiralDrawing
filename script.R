@@ -95,6 +95,7 @@ if(dir.exists("data")){
     dl <- tempfile()
     download.file("https://archive.ics.uci.edu/ml/machine-learning-databases/00395/PARKINSON_HW.zip", dl)
     
+    #unziping the archive
     unzip(dl, exdir="data")
     
     #Copy the files from the new_dataset/parkinson into the main directory hw_dataset/parkinson
@@ -102,8 +103,10 @@ if(dir.exists("data")){
       file.copy(paste0(dirpath,"/",dirToMove,"/",file), dirToKeep)
     })
     
+    #building the data frame
     df <- createDf()
     
+    #Removing the temporary directory
     unlink(dirpath, recursive = TRUE)
 }
 
@@ -116,29 +119,48 @@ df <- df %>% separate(V1, c("X", "Y", "Z", "Pressure", "GripAngle","Timestamp", 
 
 df <- df %>% mutate(X = as.numeric(X),
                     Y = as.numeric(Y),
-                    Z = as.numeric(Y),
+                    Z = as.numeric(Z),
                     Pressure = as.numeric(Pressure),
                     GripAngle = as.numeric(GripAngle),
                     Timestamp = as.numeric(Timestamp))
 
-#delete useless column Z
+patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp)
 
-nrow(df)
-
-df %>% filter(Y==Z) %>% nrow()
-
-(df %>% filter(Z==Y) %>% nrow()) == nrow(df)
-
-df <- df %>% select(-Z)
 
 completeDf <- data.frame()
 
-
-patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp)
+#For each of the tests "test"
+for(test in seq(0, by=1, length=3)){
+  
+  #For each of the patients "indPatient"
+  for(indPatient in seq(1, by=1, length=nrow(patients))){
+    
+    #Create a temporary data frame for patient "indPatient" and test "test"
+    temp_df <- df %>% 
+      filter(TestID == test & 
+               patientID == patients[indPatient,]$patientID) %>% 
+      arrange(Timestamp)
+    
+    #Get first value of timestamp
+    initialTimestamp = temp_df[1,]$Timestamp
+    
+    #Mutate Timestamp so that the very first value of Timestamp for patient "indPatient" and test "test" is equal to 0
+    temp_df <- temp_df %>%
+      mutate(Timestamp = Timestamp - initialTimestamp)
+    
+    #Bind temporary data frame to complete data frame
+    completeDf <- rbind(completeDf, temp_df)
+    
+    
+  }
+}
 
 ratiosDf <- df %>% 
   group_by(patientID, TestID) %>% 
-  summarize(ratio=(max(Y)-min(Y))/(max(X)-min(X)), ratioY=1/(max(Y)-min(Y)), ratioX=1/(max(X)-min(X)), isPwp = first(isPwp))
+  summarize(ratio=(max(Y)-min(Y))/(max(X)-min(X)), 
+            ratioY=1/(max(Y)-min(Y)), 
+            ratioX=1/(max(X)-min(X)), 
+            isPwp = first(isPwp))
 
 ratiosDf %>% ggplot() + geom_histogram(aes(TestID, fill=isPwp), stat="count")
 
@@ -157,9 +179,15 @@ ratiosDf %>% filter(TestID == 2) %>%
   ggplot()+
   geom_bar(aes(ratio), stat="bin")
 
+
+
+
 for(test in seq(0, by=1, length=3)){
   for(indPatient in seq(1, by=1, length=nrow(patients))){
-    ratioLines <- ratiosDf %>% filter(patientID == patients[indPatient,]$patientID & TestID == test)
+    
+    ratioLines <- ratiosDf %>% 
+      filter(patientID == patients[indPatient,]$patientID & 
+                                        TestID == test)
     
     if(nrow(ratioLines) >=1){
       
