@@ -77,7 +77,7 @@ The three tests performed were :
 * **Stability Test on Certain Point** is a test where there is a red point in the middle of the tablet's screen, and the patients are asked to hold the pen on the point without touching the screen. This test determine the patient's hand stability and hand tremor level.
 
 ```{r archimedean spiral, echo=FALSE, fig.align="center", fig.width=6, fig.height=6, fig.cap="Archimedean spiral"}
- a <- 4
+ a <- 0
  b <- 12
  t <- seq(0,6*pi, length.out=500)
  x <- (a + b*t) * (cos(t))
@@ -335,7 +335,80 @@ completeDf %>%
   ggtitle("Sample Timestamps for Test 0")
 ```
 
-To 
+To calibrate the X and Y values, the ratios $\frac{X}{Y}$ were calculated and stored in a new data frame *ratiosDf*, by patient and test. This data frame contained the ratio between X and Y as $ratio=\frac{X_{max} - X_{min}}{Y_{max}-Y_{min}}$
+
+```{r calculate ratios}
+ratiosDf <- df %>% 
+  group_by(patientID, TestID) %>% 
+  summarize(ratio=(max(X)-min(X))/(max(Y)-min(Y)), 
+            distY= max(Y)-min(Y), 
+            distX= max(X)-min(X), 
+            isPwp = first(isPwp))
+ratiosDf %>% filter(TestID != 2) %>% 
+  ggplot() +
+  geom_bar(aes(ratio, fill=TestID), stat="bin")
+```
+We can indeed see that even if most ratios are around 1.3, some outliers are around 2.
+
+```{r}
+completeDf %>% filter(TestID == 0 & Timestamp == 0) %>% ggplot() + geom_point(aes(X,Y, color=isPwp))
+```
+
+```{r calibrating X depending on ratio}
+completeCalibratedDf <- data.frame()
+
+for(test in seq(0, by=1, length=3)){
+  for(indPatient in seq(1, by=1, length=nrow(patients))){
+    
+    ratioLines <- ratiosDf %>% 
+      filter(patientID == patients[indPatient,]$patientID & 
+                                        TestID == test)
+    
+    if(nrow(ratioLines) >=1){
+      
+      ratio <- ratioLines[1,]$ratio
+      distY <- ratioLines[1,]$distY
+      
+      temp_df <- completeDf %>% 
+        filter(TestID == test & 
+                 patientID==patients[indPatient,]$patientID) %>% 
+        arrange(Timestamp)
+      
+      pX <- (temp_df[which.min(temp_df$Timestamp),]$X + min(temp_df$X) + max(temp_df$X))/3
+      
+      pY <- (temp_df[which.min(temp_df$Timestamp),]$Y+ min(temp_df$Y) + max(temp_df$Y))/3
+        
+      temp_df <- temp_df %>%
+        mutate(X = ((X-pX)/ratio)/distY*400, 
+               Y = (Y - pY)/distY*400)
+
+      
+      completeCalibratedDf <- rbind(completeCalibratedDf, temp_df)
+    }
+
+  }
+}
+
+completeCalibratedDf %>% 
+  filter(TestID == 0) %>% 
+  ggplot() + 
+  geom_point(aes(X,Y, 
+                 color=patientID), 
+             show.legend = FALSE) + 
+  ggtitle("Samples for Test 0")
+
+```
+
+```{r}
+completeCalibratedDf %>% 
+  filter(TestID == 0 & Timestamp==0) %>% 
+  ggplot() + 
+  geom_point(aes(X,Y), 
+             show.legend = FALSE) + 
+  ggtitle("Samples for Test 0")
+
+```
+
 ## Data analysis
 
 ### Global analysis

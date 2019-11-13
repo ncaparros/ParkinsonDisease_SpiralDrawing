@@ -144,7 +144,8 @@ for(test in seq(0, by=1, length=3)){
     #Get first value of timestamp
     initialTimestamp = temp_df[1,]$Timestamp
     
-    #Mutate Timestamp so that the very first value of Timestamp for patient "indPatient" and test "test" is equal to 0
+    #Mutate Timestamp so that the very first value of Timestamp for patient "indPatient" 
+    #and test "test" is equal to 0
     temp_df <- temp_df %>%
       mutate(Timestamp = Timestamp - initialTimestamp)
     
@@ -157,10 +158,14 @@ for(test in seq(0, by=1, length=3)){
 
 ratiosDf <- df %>% 
   group_by(patientID, TestID) %>% 
-  summarize(ratio=(max(Y)-min(Y))/(max(X)-min(X)), 
-            ratioY=1/(max(Y)-min(Y)), 
-            ratioX=1/(max(X)-min(X)), 
+  summarize(ratio=(max(X)-min(X))/(max(Y)-min(Y)), 
+            distY= max(Y)-min(Y), 
+            distX = max(X)-min(X), 
             isPwp = first(isPwp))
+
+ratiosDf %>% filter(TestID != 2) %>% 
+  ggplot() +
+  geom_bar(aes(ratio, fill=TestID), stat="bin")
 
 ratiosDf %>% ggplot() + geom_histogram(aes(TestID, fill=isPwp), stat="count")
 
@@ -180,7 +185,7 @@ ratiosDf %>% filter(TestID == 2) %>%
   geom_bar(aes(ratio), stat="bin")
 
 
-
+completeCalibratedDf <- data.frame()
 
 for(test in seq(0, by=1, length=3)){
   for(indPatient in seq(1, by=1, length=nrow(patients))){
@@ -192,7 +197,7 @@ for(test in seq(0, by=1, length=3)){
     if(nrow(ratioLines) >=1){
       
       ratio <- ratioLines[1,]$ratio
-      ratioY <- ratioLines[1,]$ratioY
+      distY <- ratioLines[1,]$distY
       
       temp_df <- df %>% 
         filter(TestID == test & 
@@ -204,11 +209,11 @@ for(test in seq(0, by=1, length=3)){
       pY <- (temp_df[which.min(temp_df$Timestamp),]$Y+ min(temp_df$Y) + max(temp_df$Y))/3
         
       temp_df <- temp_df %>%
-        mutate(X = ((X-pX/2)*ratio)*ratioY*400, 
-               Y = (Y - pY/2)*ratioY*400)
+        mutate(X = ((X-pX/2)/ratio)/distY*400, 
+               Y = (Y - pY/2)/distY*400)
 
       
-      completeDf <- rbind(completeDf, temp_df)
+      completeCalibratedDf <- rbind(completeCalibratedDf, temp_df)
     }
 
   }
