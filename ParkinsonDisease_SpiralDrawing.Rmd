@@ -296,6 +296,46 @@ With this modification, it was easier to compare the timestamps between patients
 
 ### Calibrating the samples
 
+A quick look at the test results (the drawings) showed that the samples were not all consistent in term of X-Y ratio (see Plot). Seven samples can be seen with a X-Y ratio of almost 2 instead of 1. With the Archimead spiral formula in mind, it seemed odd that a small part of the patients would have been given a different test with a different drawing to follow. 
+
+```{r ploting X-Y for Test0}
+completeDf %>% 
+  filter(TestID == 0) %>% 
+  ggplot() +
+  geom_point(aes(X,Y, color=patientID), 
+             show.legend = FALSE) + 
+  ggtitle("Samples for Test 0")
+```
+
+Another odd detail was a spacial gap between patterns with the same ratio (see Plot). One of the control sample seemed to have been shifted.
+
+```{r ploting X-Y for Test0 and controls}
+completeDf %>% 
+  filter(TestID == 0 & 
+           isPwp == FALSE) %>% 
+  ggplot() + 
+  geom_point(aes(X,Y, 
+                 color=patientID), 
+             show.legend = FALSE) + 
+  ggtitle("Samples for Test 0")
+```
+
+This disparity between the samples prevented me from trying to analyse the spacial differences between the generated Archimedean spiral and the patient's drawing. I checked if the timestamp data seemed affected or not (see Plot). It seemed as only the X and Y values were sometimes off.
+
+```{r checking timestamps}
+completeDf %>% 
+  filter(TestID == 0) %>% 
+  group_by(patientID) %>% 
+  summarize(maxT = max(Timestamp), 
+            isPwp = first(isPwp)) %>% 
+  ggplot() + 
+  geom_histogram(aes(maxT, 
+                     fill=isPwp), 
+                 stat="bin")+ 
+  ggtitle("Sample Timestamps for Test 0")
+```
+
+To 
 ## Data analysis
 
 ### Global analysis

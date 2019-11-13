@@ -199,15 +199,12 @@ for(test in seq(0, by=1, length=3)){
                  patientID==patients[indPatient,]$patientID) %>% 
         arrange(Timestamp)
       
-      initialTimestamp = temp_df[1,]$Timestamp
-      
       pX <- (temp_df[which.min(temp_df$Timestamp),]$X + min(temp_df$X) + max(temp_df$X))/3
       
       pY <- (temp_df[which.min(temp_df$Timestamp),]$Y+ min(temp_df$Y) + max(temp_df$Y))/3
         
       temp_df <- temp_df %>%
-        mutate(Timestamp = Timestamp - initialTimestamp,
-               X = ((X-pX/2)*ratio)*ratioY*400, 
+        mutate(X = ((X-pX/2)*ratio)*ratioY*400, 
                Y = (Y - pY/2)*ratioY*400)
 
       
