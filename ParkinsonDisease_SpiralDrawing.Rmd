@@ -414,9 +414,9 @@ This model took into account the assumption of which the very first values X,Y w
 
 Combining those three models gave for patient $p$, test $t$ and spiral length $L$ equal spiral height:
 
-$$X_{i,p,t} = \frac{\frac{X_{old_i} - X_{param}}{ratio_{p,t}}}{L_{p,t}}*400 = \frac{(X_{old_i} - X_{param})*L_{p,t}*400}{ratio_{p,t}} = \frac{(X_{old_i} - \frac{X_{initial} + X_{min} + X_{max}}{3})*L_{p,t}*400}{ratio_{p,t}} $$
+$$X_{i,p,t} = \frac{\frac{X_{old_i} - X_{param}}{ratio_{p,t}}}{L_{p,t}}*400 = \frac{(X_{old_i} - X_{param})*400}{ratio_{p,t}*L_{p,t}} = 400\frac{(X_{old_i} - \frac{X_{initial} + X_{min} + X_{max}}{3})}{ratio_{p,t}*L_{p,t}} $$
 
-$$Y_{i,p,t} = \frac{\frac{Y_{old_i} - Y_{param}}{ratio_{p,t}}}{L_{p,t}}*400 = \frac{(Y_{old_i} - Y_{param})*L_{p,t}*400}{ratio_{p,t}} = \frac{(Y_{old_i} - \frac{Y_{initial} + Y_{min} + Y_{max}}{3})*L_{p,t}*400}{ratio_{p,t}}$$
+$$Y_{i,p,t} = \frac{Y_{old_i} - Y_{param}}{L_{p,t}}*400 = 400\frac{(Y_{old_i} - \frac{Y_{initial} + Y_{min} + Y_{max}}{3})}{L_{p,t}}$$
 
 ```{r calibrating X and Y}
 
@@ -443,21 +443,25 @@ for(test in seq(0, by=1, length=3)){
       #get the height for current patient and current test (we are standardizing X depending of Y)
       L <- ratioLines[1,]$L
       
+      #get temporary data frame for current patient and current test, arranged by timestamp
       temp_df <- completeDf %>% 
         filter(TestID == test & 
                  patientID==patients[indPatient,]$patientID) %>% 
         arrange(Timestamp)
       
+      #Calculate the X slid parameter
       pX <- (temp_df[which.min(temp_df$Timestamp),]$X + 
                min(temp_df$X) + 
                max(temp_df$X))/3
       
+      #Calculate the Y slid parameter
       pY <- (temp_df[which.min(temp_df$Timestamp),]$Y+ 
                min(temp_df$Y) + 
                max(temp_df$Y))/3
-        
+      
+      #mutate X and Y with 
       temp_df <- temp_df %>%
-        mutate(X = ((X - pX)/ratio)/L*400, 
+        mutate(X = ((X - pX)/(ratio*L))*400, 
                Y = (Y - pY)/L*400)
 
       
