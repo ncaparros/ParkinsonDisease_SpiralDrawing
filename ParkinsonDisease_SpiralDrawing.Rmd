@@ -64,11 +64,15 @@ Parkinson's disease affected 6.2 million people in 2015 and resulted in more tha
 
 In 2011, the Department of Neurology in Cerrahpasa Faculty of Medicine in Istanbul University (Turkey) provided a data set  of test results from 62 patients with the Parkinson's disease and 15 from healthy people for a study (Muhammed Erdem Isenkul, Betul Erdogdu Sakar and Olcay Kursun) which purpose was to monitor Parkinson's disease with digitized graphics tablet. The goal of this study was to provide easy access to Parkinson's disease progress monitoring to the elderly patients, or patients with an advanced stage of the disease, instead of the inconvenient and time-consuming process at the clinic. The tests aim to be non-invasive, would not require brain scans, would ease the work of the medical doctors, and would not require trained medical staff assigned to this task.
 
+### Material
+
 It was decided to perform three handwriting tests on a graphic tablet (Wacom Cintiq 12WX graphics, see Figure 3). The tablet would measure several parameters as : the coordinates (x-y-z) of the pen on the table, the pressure over the screen, the grip angle on the pen at regular time intervals. A software was developped in order to test the coordination of the patient.
 
 ![Wacom Cintiq 12WX graphics, source : https://www.bhphotovideo.com/](img/wacom.jpg)
 
-The three tests performed were :
+### Tests 
+
+The three tests performed by the patients were :
 
 * **Static Spiral Test (SST)** is a traditionnal test usually performed with paper and pencil. An Archimedean spiral (see following plot) is printed on it, and the patient needs to retrace it. The more the patient suffer from an advanced stage of the Parkinson's disease, the more differences between the archimedean spiral and his drawing.
 
@@ -76,17 +80,20 @@ The three tests performed were :
 
 * **Stability Test on Certain Point** is a test where there is a red point in the middle of the tablet's screen, and the patients are asked to hold the pen on the point without touching the screen. This test determine the patient's hand stability and hand tremor level.
 
+### Archimedean spiral
+
 ```{r archimedean spiral, echo=FALSE, fig.align="center", fig.width=6, fig.height=6, fig.cap="Archimedean spiral"}
- a <- 0
- b <- 12
+ b <- 11.5
  t <- seq(0,6*pi, length.out=500)
- x <- (a + b*t) * (cos(t))
- y <- (a + b*t) * -(sin(t))
+ x <- b*t * (cos(t))
+ y <- b*t * - (sin(t))
  archimedeanSpiral = data.frame(x,y)
  ggplot() + geom_path(aes(x,y), color="red")
 ```
 
-In this report I will try to build an algorithm able to predict if the patient has or has not Parkinson's disease based on this dataset. I do not have access to the software used in the study, so I will have to recreate and approximate the Archimedean spiral. I do not have access to the *scores* of the patients, given by neurologists, representing the stage of Parkinson's disease. Therefore, my output will only be a boolean, has, or has not, with a percentage of probability. Not a scale. 
+### Goal 
+
+In this report I will try to build an algorithm able to predict if the patient has or has not Parkinson's disease based on this dataset. I do not have access to the software used in the study, so I will have to recreate and approximate the Archimedean spiral. I do not have access to the *scores* of the patients, given by neurologists, representing the stage of Parkinson's disease. Therefore, my output will only be a boolean, has, or has not, with a percentage of probability. Not a neurological scale. If efficient, these results would help determine if a person taking the test should consult a specialist for further examination. 
 
 ## Dataset overview
 
@@ -341,46 +348,117 @@ To calibrate the X and Y values, the ratios $\frac{X}{Y}$ were calculated and st
 ratiosDf <- df %>% 
   group_by(patientID, TestID) %>% 
   summarize(ratio=(max(X)-min(X))/(max(Y)-min(Y)), 
-            distY= max(Y)-min(Y), 
-            distX= max(X)-min(X), 
+            L= max(Y)-min(Y), 
             isPwp = first(isPwp))
 ratiosDf %>% filter(TestID != 2) %>% 
   ggplot() +
   geom_bar(aes(ratio, fill=TestID), stat="bin")
 ```
-We can indeed see that even if most ratios are around 1.3, some outliers are around 2.
+We can indeed see that even if most ratios are around 1.3, some outliers are around 2. Even the initial point of the drawing was different (see next plot).
 
-```{r}
+```{r starts of drawings for test 0}
 completeDf %>% filter(TestID == 0 & Timestamp == 0) %>% ggplot() + geom_point(aes(X,Y, color=isPwp))
 ```
 
-```{r calibrating X depending on ratio}
+To standardize all the spirals, several parameters were taken into account :
+* The ratio ($\frac{X_{max} - X_{min}}{Y_{max}-Y_{min}}$) should be of one
+* The height and length of the spiral should be the same (approximately)
+* The X and Y values would have to be slid
+
+Standardizing the ratio would simply be $X_{standardized_i} = \frac{X_{old_i}}{ratio}$ and this would imply that $\frac{X_{maxStandardized} - X_{minStandardized}}{Y_{max}-Y_{min}}=1$.
+
+Resizing the height and length of the spiral would be done with : $X_{resized_i} = \frac{X_{old_i}}{Spiral_{length}}*Size$ and $Y_{resized_i} = \frac{Y_{old_i}}{Spiral_{length}}*Size$ when $Spiral_{length} = Spiral_{height}$ since the ratio $\frac{X_{maxStandardized} - X_{minStandardized}}{Y_{max}-Y_{min}}=1$ as seen previously, and with $Size$ is the desired size of the spiral. I chose an arbitrary $Size = 400$ and since the unit is not given I assumed it was $400px$. The unit would not matter in the study.
+
+In order to replace the spirals near the origin of the graph ($X=0$ and $Y=0$), two adjustment parameters need to be determined. The formula would simply be $X_{slid_i}=X_{old_i}-X_{param}$ and $Y_{slid_i}=Y_{old_i}-Y_{param}$.
+
+Several methods were tried for determining the best $X_{param}$ and $Y_{param}$ such as :
+
+* $X_{param} = X_{mean}$ and $Y_{param} = Y_{mean}$
+* $X_{param} = X_{median}$ and $Y_{param} = Y_{median}$
+* $X_{param} = mean(X_{Y = Y_{median}})$ and $Y_{param} = mean(Y_{X = X_{median}})$
+* $X_{param} = mean(X_{Y = Y_{mean}})$ and $Y_{param} = mean(Y_{X = X_{mean}})$
+* $X_{param} = mean(X_{Y = Y_{Timestamp = 0}})$ and $Y_{param} = mean(Y_{X = X_{Timestamp = 0}})$
+* $X_{param} = X_{initial}$ and $Y_{param} = Y_{initial}$
+
+And eventually the most accurate models were :
+
+$$X_{param} = \frac{(X_{initial} + X_{min} + X_{max})}{3}$$
+
+
+$$Y_{param} = \frac{(Y_{initial} + Y_{min} + Y_{max})}{3}$$
+
+This model took into account the assumption of which the very first values X,Y were, in general, the closest to the Archimedean Spiral when $Timestamp = 0$. $X_{min}$ and $X_{max}$ (and respectively $Y_{min}$ and $Y_{max}$) were approximations of the very tip of the drawings (see plot).
+
+```{r modeling the Spiral and X-Y params}
+
+ b <- 12
+ t <- seq(0,6*pi, length.out=1100)
+ x <- b*t * (cos(t))
+ y <- b*t * -(sin(t))
+ 
+ archimedeanSpiral = data.frame(x,y)
+ 
+ points <- archimedeanSpiral %>% 
+   filter(x == min(x) | 
+            x == max(x) | 
+            y == min(y) | 
+            y == max(y) | 
+            x == first(x))
+ 
+ archimedeanSpiral %>%
+   ggplot() +
+   geom_path(aes(x,y)) +
+   geom_point(data = points, aes(x,y),color="red") +
+   ggtitle("Points used to slide the drawings")
+```
+
+Combining those three models gave for patient $p$, test $t$ and spiral length $L$ equal spiral height:
+
+$$X_{i,p,t} = \frac{\frac{X_{old_i} - X_{param}}{ratio_{p,t}}}{L_{p,t}}*400 = \frac{(X_{old_i} - X_{param})*L_{p,t}*400}{ratio_{p,t}} = \frac{(X_{old_i} - \frac{X_{initial} + X_{min} + X_{max}}{3})*L_{p,t}*400}{ratio_{p,t}} $$
+
+$$Y_{i,p,t} = \frac{\frac{Y_{old_i} - Y_{param}}{ratio_{p,t}}}{L_{p,t}}*400 = \frac{(Y_{old_i} - Y_{param})*L_{p,t}*400}{ratio_{p,t}} = \frac{(Y_{old_i} - \frac{Y_{initial} + Y_{min} + Y_{max}}{3})*L_{p,t}*400}{ratio_{p,t}}$$
+
+```{r calibrating X and Y}
+
+#new data frame
 completeCalibratedDf <- data.frame()
 
+#for each test
 for(test in seq(0, by=1, length=3)){
+  
+  #for each patient
   for(indPatient in seq(1, by=1, length=nrow(patients))){
     
+    #get the ratio for current patient and current test
     ratioLines <- ratiosDf %>% 
       filter(patientID == patients[indPatient,]$patientID & 
                                         TestID == test)
     
+    #if the patient as taken the test (= there are values in the ratio data frame)  
     if(nrow(ratioLines) >=1){
       
+      #get the ratio for current patient and current test
       ratio <- ratioLines[1,]$ratio
-      distY <- ratioLines[1,]$distY
+      
+      #get the height for current patient and current test (we are standardizing X depending of Y)
+      L <- ratioLines[1,]$L
       
       temp_df <- completeDf %>% 
         filter(TestID == test & 
                  patientID==patients[indPatient,]$patientID) %>% 
         arrange(Timestamp)
       
-      pX <- (temp_df[which.min(temp_df$Timestamp),]$X + min(temp_df$X) + max(temp_df$X))/3
+      pX <- (temp_df[which.min(temp_df$Timestamp),]$X + 
+               min(temp_df$X) + 
+               max(temp_df$X))/3
       
-      pY <- (temp_df[which.min(temp_df$Timestamp),]$Y+ min(temp_df$Y) + max(temp_df$Y))/3
+      pY <- (temp_df[which.min(temp_df$Timestamp),]$Y+ 
+               min(temp_df$Y) + 
+               max(temp_df$Y))/3
         
       temp_df <- temp_df %>%
-        mutate(X = ((X-pX)/ratio)/distY*400, 
-               Y = (Y - pY)/distY*400)
+        mutate(X = ((X - pX)/ratio)/L*400, 
+               Y = (Y - pY)/L*400)
 
       
       completeCalibratedDf <- rbind(completeCalibratedDf, temp_df)
@@ -389,25 +467,36 @@ for(test in seq(0, by=1, length=3)){
   }
 }
 
+Xadjust <- completeCalibratedDf %>% 
+  filter(TestID != 2 & 
+           Timestamp==0 & 
+           isPwp == FALSE) %>% 
+  pull(X) %>% 
+  mean()
+Yadjust <- completeCalibratedDf %>% 
+  filter(TestID != 2 & 
+           Timestamp==0 & 
+           isPwp == FALSE) %>% 
+  pull(Y) %>% 
+  mean()
+
+ b <- 12
+ t <- seq(0,6*pi, length.out=1100)
+ x <- b*t * (cos(t)) + Xadjust
+ y <- b*t * -(sin(t)) + Yadjust
+ archimedeanSpiral = data.frame(x,y)
+
 completeCalibratedDf %>% 
   filter(TestID == 0) %>% 
   ggplot() + 
   geom_point(aes(X,Y, 
                  color=patientID), 
              show.legend = FALSE) + 
-  ggtitle("Samples for Test 0")
+  ggtitle("Samples for Test 0") + 
+  geom_point(data=archimedeanSpiral, aes(x,y), color="red")
 
 ```
 
-```{r}
-completeCalibratedDf %>% 
-  filter(TestID == 0 & Timestamp==0) %>% 
-  ggplot() + 
-  geom_point(aes(X,Y), 
-             show.legend = FALSE) + 
-  ggtitle("Samples for Test 0")
-
-```
 
 ## Data analysis
 
