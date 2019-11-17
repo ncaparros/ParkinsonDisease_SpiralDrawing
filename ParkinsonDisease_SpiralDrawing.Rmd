@@ -25,6 +25,9 @@ if(!require(ggplot2)) install.packages("ggplot2", repos = "http://cran.us.r-proj
 if(!require(geiger)) install.packages("geiger", repos = "http://cran.us.r-project.org")
 if(!require(ggpubr)) install.packages("ggpubr", repos = "http://cran.us.r-project.org")
 if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
+if(!require(ggarrange)) install.packages("ggarrange", repos = "http://cran.us.r-project.org")
+if(!require(sp)) install.packages("sp", repos = "http://cran.us.r-project.org")
+if(!require(rgeos)) install.packages("rgeos", repos = "http://cran.us.r-project.org")
 ```
 
 
@@ -424,7 +427,7 @@ $$Y_{i,p,t} = \frac{Y_{old_i} - Y_{param}}{L_{p,t}}*400 = 400\frac{(Y_{old_i} - 
 completeCalibratedDf <- data.frame()
 
 #for each test
-for(test in seq(0, by=1, length=3)){
+for(test in seq(0, by=1, length=2)){
   
   #for each patient
   for(indPatient in seq(1, by=1, length=nrow(patients))){
@@ -504,13 +507,145 @@ completeCalibratedDf %>%
 
 ## Data analysis
 
+This section describes the analysis of the different tests in the dataset. Since there was no prediction here, and some additionnal information (calculated and determined values) were to be noted in the `patients` data frame, the analysis was performed on the whole datas.
+
 ### Global analysis
 
-### Archimedean Spiral
+The very first point to stress out was that every patient did not perform the three tests.
 
-### Static Spiral Test analysis
+```{r tests taken}
+ratiosDf %>% 
+  ggplot() + 
+  geom_histogram(aes(TestID, 
+                     fill=isPwp),
+                 stat="count")
+```
 
-### Dynamic Spiral Test analysis
+This would probably alter the accuracy of the future predictions. The original study based its analysis on the combination of tests 0 and 1, and though every patient took the first test (Static Spiral Test), some tests 1 (Dynamic Spiral Test) were missing from the dataset. I had to base a prediction method on the sole first test for the patients who only took this one.
+
+### Distance (Static and Dynamic Spiral) analysis
+
+I built a method which would estimate the difference between the Archimedean Spiral and the patient's drawing to be used for the analysis of the first two tests, using the `rgeos` package and the notion of `Spatial points` to work with spatial coordinates.
+
+```{r calculating distance between Archimedean Spiral and drawing0}
+
+#Initialisation of the values : total area difference between the drawing and the Archimedean spiral, and the standard deviation of the distance between the drawing and the spiral.
+patients <- patients %>% mutate(areaT0 = NA)
+patients <- patients %>% mutate(areaT1 = NA)
+patients <- patients %>% mutate(sdT0 = NA)
+patients <- patients %>% mutate(sdT1 = NA)
+
+#The calculus is applied to the first two tests (Static and Dynamic Spiral test)
+for(test in seq(0, by=1, length=2)){
+  
+  #For every patient in the data set
+  for(p in seq(1, by=1, length=nrow(patients))){
+    
+    #Defining current patient
+    patient = patients[p,]$patientID
+    
+    
+    temp_df <- completeCalibratedDf %>% 
+      filter(TestID==test & 
+               patientID == patient) %>% 
+      select(X,Y) %>% 
+      unique()
+    
+    if(nrow(temp_df)>0){
+      b <- 12
+   t <- seq(0,6*pi, length.out=nrow(temp_df))
+   x <- b*t * (cos(t)) + temp_df[1,]$X
+   y <- b*t * -(sin(t)) + temp_df[1,]$Y
+   archimedeanSpiral = data.frame(x,y)
+   archimedeanSpiral <- archimedeanSpiral %>% mutate(nr=row_number())
+  
+   
+  temp_df_sp <- SpatialPoints(temp_df)
+  sp <- SpatialPoints(archimedeanSpiral)
+  temp_df$nr <- apply(gDistance(temp_df_sp, sp, byid=TRUE), 1, which.min)
+  
+  temp_df <- left_join(temp_df, archimedeanSpiral, by="nr")
+  
+  temp_df <- temp_df %>% mutate(dist = sqrt((X-x)^2+(Y-y)^2)) %>% select(X,Y,dist)
+  
+  patients[p,][paste0("areaT", test)] <- sum(temp_df$dist)
+  patients[p,][paste0("sdT",test)] <- sd(temp_df$dist)
+    }
+  
+  }
+}
+
+```
+
+
+```{r times}
+times0 <- completeCalibratedDf %>% 
+  filter(TestID == 0 & 
+           Z == 0) %>% 
+  group_by(patientID) %>% 
+  summarize(time0 = max(Timestamp))
+
+times1 <- completeCalibratedDf %>% 
+  filter(TestID == 1 & 
+           Z == 0) %>% 
+  group_by(patientID) %>% 
+  summarize(time1 = max(Timestamp))
+
+times <- left_join(times0, times1, by="patientID")
+
+times <- times %>% 
+  mutate(difft = time1 - time0) %>% 
+  select(difft, patientID)
+
+patients <- left_join(patients, times, by="patientID")
+```
+
+### Instantaneous velocity (Static and Dynamic Test) analysis
+
+The distance between two consecutive samples gave the instantaneous velocity at time $t$ ($V_t$).
+
+$$V_t = \sqrt{(x_t-x_{t-1})^2 + (y_t-y_{t-1})^2}$$
+```{r calculation instantaneous velocity}
+
+completeCalibratedDf <- completeCalibratedDf %>% mutate(Vt = NA, Dist = NA)
+AnalyseDf <- completeCalibratedDf
+
+for(index in seq(1, by=1, length=nrow(patients))){
+  
+  id <- patients[index,]$patientID
+  
+  temp0 <- completeCalibratedDf %>% 
+    filter(patientID == id & 
+             TestID == 0) %>% 
+    arrange(Timestamp)
+  
+  temp1 <- completeCalibratedDf %>% 
+    filter(patientID == id & 
+             TestID == 1) %>% 
+    arrange(Timestamp)
+  
+  if(nrow(temp0) > 0 & nrow(temp1) > 0){
+    
+    temp0[1,]$Vt = 0
+    temp0[1,]$Dist = 0
+    
+    for(row in seq(2, by=1, length=nrow(temp))){
+      
+    temp[row,]$DistXY <- sqrt((temp[row,]$X - temp[row-1,]$X)^2 + (temp[row,]$Y - temp[row-1,]$Y)^2)
+    temp[row,]$CumulDistXY <- temp[row - 1,]$CumulDistXY + temp[row,]$DistXY
+  }
+  AnalyseDf <- rbind(AnalyseDf, temp)
+  }
+  
+}
+
+
+```
+Since we did not have the unit of the time (Timestamp), it was not possible to measure the value of the velocity, nor to analyse the speed at which the patient was drawing. But it was possible to compare the acceleration (change of velocity) for the Static and Dynamic Spiral Tests.
+
+### Acceleration (Static and Dynamic Test) analysis
+
+The acceleration at time $t$ ($A_t$) would be : $$A_t = V_t-V_{t-1}$$
 
 ### Stability Test on Certain Point analysis
 
