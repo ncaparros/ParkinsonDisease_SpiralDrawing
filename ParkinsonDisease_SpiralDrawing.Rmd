@@ -607,38 +607,31 @@ The distance between two consecutive samples gave the instantaneous velocity at 
 $$V_t = \sqrt{(x_t-x_{t-1})^2 + (y_t-y_{t-1})^2}$$
 ```{r calculation instantaneous velocity}
 
-completeCalibratedDf <- completeCalibratedDf %>% mutate(Vt = NA, Dist = NA)
-AnalyseDf <- completeCalibratedDf
+completeCalibratedDf <- completeCalibratedDf %>% 
+  mutate(Vt = NA, Dist = NA)
 
-for(index in seq(1, by=1, length=nrow(patients))){
+AnalyseDf <- data.frame()
+
+#Add distance, speed and acceleration
+
+for(test in seq(0,by=1,length=2)){
   
-  id <- patients[index,]$patientID
-  
-  temp0 <- completeCalibratedDf %>% 
-    filter(patientID == id & 
-             TestID == 0) %>% 
-    arrange(Timestamp)
-  
-  temp1 <- completeCalibratedDf %>% 
-    filter(patientID == id & 
-             TestID == 1) %>% 
-    arrange(Timestamp)
-  
-  if(nrow(temp0) > 0 & nrow(temp1) > 0){
-    
-    temp0[1,]$Vt = 0
-    temp0[1,]$Dist = 0
-    
-    for(row in seq(2, by=1, length=nrow(temp))){
+    for(index in seq(1, by=1, length=nrow(patients))){
       
-    temp[row,]$DistXY <- sqrt((temp[row,]$X - temp[row-1,]$X)^2 + (temp[row,]$Y - temp[row-1,]$Y)^2)
-    temp[row,]$CumulDistXY <- temp[row - 1,]$CumulDistXY + temp[row,]$DistXY
-  }
-  AnalyseDf <- rbind(AnalyseDf, temp)
-  }
-  
+      id <- patients[index,]$patientID
+      
+      temp <- completeDf %>% 
+        filter(patientID == id & TestID == test) %>% 
+        arrange(Timestamp)
+      
+      for(row in seq(2, by=1, length=nrow(temp))){
+        
+        temp[row,]$Vt <- sqrt((temp[row,]$X - temp[row-1,]$X)^2 + (temp[row,]$Y - temp[row-1,]$Y)^2)
+        temp[row,]$Dist <- temp[row - 1,]$CumulDistXY + temp[row,]$DistXY
+      }
+      AnalyseDf <- rbind(AnalyseDf, temp)
+    }
 }
-
 
 ```
 Since we did not have the unit of the time (Timestamp), it was not possible to measure the value of the velocity, nor to analyse the speed at which the patient was drawing. But it was possible to compare the acceleration (change of velocity) for the Static and Dynamic Spiral Tests.
