@@ -225,7 +225,9 @@ X and Y represents the place of the pen on the tablet, we can assume horizontall
 A new data frame containing one line by patient was then created and filled as :
 
 ```{r extracting patients, echo=FALSE}
-patients <- df %>% select(patientID, isPwp) %>% distinct(patientID, isPwp)
+patients <- df %>% 
+  select(patientID, isPwp) %>% 
+  distinct(patientID, isPwp)
 head(patients)
 ```
 It will be used for summaries and additionnal informations on the patient or the test later.
@@ -360,7 +362,11 @@ ratiosDf %>% filter(TestID != 2) %>%
 We can indeed see that even if most ratios are around 1.3, some outliers are around 2. Even the initial point of the drawing was different (see next plot).
 
 ```{r starts of drawings for test 0}
-completeDf %>% filter(TestID == 0 & Timestamp == 0) %>% ggplot() + geom_point(aes(X,Y, color=isPwp))
+completeDf %>% 
+  filter(TestID == 0 & 
+           Timestamp == 0) %>% 
+  ggplot() + 
+  geom_point(aes(X,Y, color=isPwp))
 ```
 
 To standardize all the spirals, several parameters were taken into account :
@@ -523,6 +529,68 @@ ratiosDf %>%
 
 This would probably alter the accuracy of the future predictions. The original study based its analysis on the combination of tests 0 and 1, and though every patient took the first test (Static Spiral Test), some tests 1 (Dynamic Spiral Test) were missing from the dataset. I had to base a prediction method on the sole first test for the patients who only took this one.
 
+### Creating training and testing sets
+
+In order to calibrate the Archimedean spiral, I needed to create training and testing sets. Since we had very little values, I needed to make sure I had control patients in both sets, as well as patients (control and not) who had taken the Stability on Certain Point Test.
+I created several sub-datasets as :
+* `subControls` : a dataset with only control patients, who had not taken the Stability on Certain Point Test
+* `subParkinsons`: a dataset with only patients with the Parkinson's disease, who had not taken the Stability on Certain Point Test
+* `subTest2Ctrl` : a dataset with only control patients who had taken the Stability on Certain Point Test
+* `subTest2Parkinsons` : a dataset with only patients with the Parkinson's disease, who had taken the Stability on Certain Point Test
+
+```{r building subsets}
+
+groupedPatientTestDf <- df %>% 
+  group_by(patientID, TestID) %>% 
+  select(patientID, TestID, isPwp) %>% 
+  unique()
+
+subTest2Ctrl <- groupedPatientTestDf %>% 
+  filter(TestID == 2 & isPwp==FALSE) %>% 
+  ungroup() %>% 
+  select(patientID) %>% 
+  unique()
+
+subTest2Parkinsons  <- groupedPatientTestDf %>% 
+  filter(TestID == 2 & isPwp==TRUE) %>% 
+  ungroup() %>% 
+  select(patientID) %>% 
+  unique()
+
+subControls <- groupedPatientTestDf %>% 
+  filter(isPwp==FALSE & !patientID %in% subTest2Ctrl$patientID) %>% 
+  ungroup() %>% 
+  select(patientID) %>% 
+  unique()
+
+subParkinsons <- groupedPatientTestDf %>% 
+  filter(isPwp==TRUE & !patientID %in% subTest2Parkinsons$patientID) %>% 
+  ungroup() %>% 
+  select(patientID) %>% 
+  unique()
+
+nrow(subTest2Ctrl) + nrow(subTest2Parkinsons) + nrow(subControls) + nrow(subParkinsons) == nrow(patients)
+
+#Getting random samples for each sub-data set
+testIndexT2Ctrl <- sample(1:nrow(subTest2Ctrl), floor(nrow(subTest2Ctrl)*0.1)+1) 
+testIndexT2Parkinsons <- sample(1:nrow(subTest2Parkinsons), floor(nrow(subTest2Parkinsons)*0.1)+1) 
+testIndexCtrl <- sample(1:nrow(subControls), floor(nrow(subControls)*0.1)+1) 
+testIndexParkinsons <- sample(1:nrow(subParkinsons), floor(nrow(subParkinsons)*0.1)+1) 
+
+testing_patients <- subTest2Ctrl[testIndexT2Ctrl,]
+testing_patients <- rbind(testing_patients, subTest2Parkinsons[testIndexT2Parkinsons,])
+testing_patients <- rbind(testing_patients, subControls[testIndexCtrl,])
+testing_patients <- rbind(testing_patients, subParkinsons[testIndexParkinsons,])
+
+testingSet <- patients %>% 
+  filter(patientID %in% testing_patients$patientID)
+
+trainingSet <- patients %>% 
+  filter(!patientID %in% testing_patients$patientID)
+```
+
+This method was way less simple than the `createDataPartition` function, but allowed me to get a sample of each case in both training and testing sets.
+
 ### Distance (Static and Dynamic Spiral) analysis
 
 I built a method which would estimate the difference between the Archimedean Spiral and the patient's drawing to be used for the analysis of the first two tests, using the `rgeos` package and the notion of `Spatial points` to work with spatial coordinates.
@@ -530,10 +598,22 @@ I built a method which would estimate the difference between the Archimedean Spi
 ```{r calculating distance between Archimedean Spiral and drawing0}
 
 #Initialisation of the values : total area difference between the drawing and the Archimedean spiral, and the standard deviation of the distance between the drawing and the spiral.
-patients <- patients %>% mutate(areaT0 = NA)
-patients <- patients %>% mutate(areaT1 = NA)
-patients <- patients %>% mutate(sdT0 = NA)
-patients <- patients %>% mutate(sdT1 = NA)
+patients <- patients %>% mutate(areaT0 = NA, areaT1 = NA, areaT2 = NA, sdT0 = NA, sdT1 = NA, sdT2 = NA)
+
+Xadjust <- completeCalibratedDf %>% 
+  filter(TestID != 2 & 
+           Timestamp==0 & 
+           patientID %in% trainingSet$patientID &
+           isPwp == FALSE) %>% 
+  pull(X) %>% 
+  mean()
+Yadjust <- completeCalibratedDf %>% 
+  filter(TestID != 2 & 
+           Timestamp==0 & 
+           patientID %in% trainingSet$patientID &
+           isPwp == FALSE) %>% 
+  pull(Y) %>% 
+  mean()
 
 #The calculus is applied to the first two tests (Static and Dynamic Spiral test)
 for(test in seq(0, by=1, length=2)){
@@ -544,39 +624,105 @@ for(test in seq(0, by=1, length=2)){
     #Defining current patient
     patient = patients[p,]$patientID
     
-    
+    #Select every unique couple X,Y for current patient on current test
     temp_df <- completeCalibratedDf %>% 
       filter(TestID==test & 
                patientID == patient) %>% 
       select(X,Y) %>% 
       unique()
     
+    #if there are values (= if the patient has taken the test)
     if(nrow(temp_df)>0){
-      b <- 12
-   t <- seq(0,6*pi, length.out=nrow(temp_df))
-   x <- b*t * (cos(t)) + temp_df[1,]$X
-   y <- b*t * -(sin(t)) + temp_df[1,]$Y
-   archimedeanSpiral = data.frame(x,y)
-   archimedeanSpiral <- archimedeanSpiral %>% mutate(nr=row_number())
-  
-   
-  temp_df_sp <- SpatialPoints(temp_df)
-  sp <- SpatialPoints(archimedeanSpiral)
-  temp_df$nr <- apply(gDistance(temp_df_sp, sp, byid=TRUE), 1, which.min)
-  
-  temp_df <- left_join(temp_df, archimedeanSpiral, by="nr")
-  
-  temp_df <- temp_df %>% mutate(dist = sqrt((X-x)^2+(Y-y)^2)) %>% select(X,Y,dist)
-  
-  patients[p,][paste0("areaT", test)] <- sum(temp_df$dist)
-  patients[p,][paste0("sdT",test)] <- sd(temp_df$dist)
+      
+       #construct the archimedeanSpiral
+       b <- 12
+       t <- seq(0,6*pi, length.out=nrow(temp_df))
+       x <- b*t * (cos(t)) + Xadjust
+       y <- b*t * -(sin(t)) + Yadjust
+       
+       #build a data frame for the archimedean spiral coordinates
+       archimedeanSpiral = data.frame(x,y)
+       
+       #add row number for further left_join
+       archimedeanSpiral <- archimedeanSpiral %>% 
+         mutate(nr=row_number())
+      
+      #Convert data frames in spatial points (rgeos package) 
+      temp_df_sp <- SpatialPoints(temp_df)
+      sp <- SpatialPoints(archimedeanSpiral)
+      
+      #calculate minimum distance between the drawing and the spiral
+      temp_df$nr <- apply(gDistance(temp_df_sp, sp, byid=TRUE), 1, which.min)
+      
+      temp_df <- left_join(temp_df, archimedeanSpiral, by="nr")
+      
+      temp_df <- temp_df %>% mutate(dist = sqrt((X-x)^2+(Y-y)^2)) %>% select(X,Y,dist)
+      
+      patients[p,][paste0("areaT", test)] <- sum(temp_df$dist)
+      patients[p,][paste0("sdT",test)] <- sd(temp_df$dist)
     }
   
   }
 }
 
+ patients %>% ggplot() + geom_histogram(aes(areaT0, fill=isPwp, color=patientID), stat="bin") 
+  patients %>% ggplot() + geom_histogram(aes(areaT1, fill=isPwp, color=patientID), stat="bin") 
+
 ```
 
+This approach did not seem very conclusive. 
+
+```{r calculating distance between Test 0 and Test 1}
+
+#Initialisation of the values : total area difference between the drawing and the Archimedean spiral, and the standard deviation of the distance between the drawing and the spiral.
+patients <- patients %>% mutate(areaT0_T1 = NA)
+
+  #For every patient in the data set
+  for(p in seq(1, by=1, length=nrow(patients))){
+    
+    #Defining current patient
+    patient = patients[p,]$patientID
+    
+    #Select every unique couple X,Y for current patient on test 0
+    temp_df0 <- completeCalibratedDf %>% 
+      filter(TestID==0 & 
+               patientID == patient) %>% 
+      select(X,Y) %>% 
+      unique() %>% 
+      mutate(nr=row_number())
+    
+    #Select every unique couple X,Y for current patient on test 1
+    temp_df1 <- completeCalibratedDf %>% 
+      filter(TestID==1 & 
+               patientID == patient) %>% 
+      select(X,Y) %>% 
+      unique() %>% 
+      mutate(nr=row_number())
+    
+    #if there are values (= if the patient has taken the test)
+    if(nrow(temp_df0)>0 & nrow(temp_df1)>0){
+      
+      #Convert data frames in spatial points (rgeos package) 
+      temp_df0_sp <- SpatialPoints(temp_df0)
+      temp_df1_sp <- SpatialPoints(temp_df1)
+
+        temp_df1$nr <- apply(gDistance(temp_df0_sp, temp_df1_sp, byid=TRUE), 1, which.min)
+        
+        temp_df <- inner_join(temp_df1, temp_df0, by="nr")
+      
+      
+      
+      temp_df <- temp_df %>% mutate(dist = sqrt((X.x-X.y)^2+(Y.x-Y.y)^2)) %>% select(X.x,Y.y,dist)
+      
+      patients[p,]$areaT0_T1 <- sum(temp_df$dist)
+    }
+  
+  
+  }
+
+patients %>% ggplot() + geom_histogram(aes(areaT0_T1, fill=isPwp, color=patientID), stat="bin") 
+
+```
 
 ```{r times}
 times0 <- completeCalibratedDf %>% 
@@ -614,22 +760,31 @@ AnalyseDf <- data.frame()
 
 #Add distance, speed and acceleration
 
-for(test in seq(0,by=1,length=2)){
+for(test in seq(0,by=1,length=3)){
   
     for(index in seq(1, by=1, length=nrow(patients))){
       
       id <- patients[index,]$patientID
       
-      temp <- completeDf %>% 
+      temp <- completeCalibratedDf %>% 
         filter(patientID == id & TestID == test) %>% 
         arrange(Timestamp)
       
-      for(row in seq(2, by=1, length=nrow(temp))){
+      if(nrow(temp)>0){
         
-        temp[row,]$Vt <- sqrt((temp[row,]$X - temp[row-1,]$X)^2 + (temp[row,]$Y - temp[row-1,]$Y)^2)
-        temp[row,]$Dist <- temp[row - 1,]$CumulDistXY + temp[row,]$DistXY
+        temp[1,]$Vt <- 0
+        temp[1,]$Dist <- 0
+        
+        for(row in seq(2, by=1, length=nrow(temp))){
+          
+          temp[row,]$Vt <- sqrt((temp[row,]$X - temp[row-1,]$X)^2 + 
+                                  (temp[row,]$Y - temp[row-1,]$Y)^2)
+          
+          temp[row,]$Dist <- temp[row - 1,]$Dist + temp[row,]$Vt
+        }
+        
+        AnalyseDf <- rbind(AnalyseDf, temp)
       }
-      AnalyseDf <- rbind(AnalyseDf, temp)
     }
 }
 
@@ -640,13 +795,73 @@ Since we did not have the unit of the time (Timestamp), it was not possible to m
 
 The acceleration at time $t$ ($A_t$) would be : $$A_t = V_t-V_{t-1}$$
 
+```{r Measuring acceleration}
+AnalyseDf <- AnalyseDf %>% 
+  mutate(A = NA)
+
+AnalyseDfAcc <- data.frame()
+
+#Add distance, speed and acceleration
+
+for(test in seq(0,by=1,length=3)){
+  
+    for(index in seq(1, by=1, length=nrow(patients))){
+      
+      id <- patients[index,]$patientID
+      
+      temp <- completeCalibratedDf %>% 
+        filter(patientID == id & TestID == test) %>% 
+        arrange(Timestamp)
+      
+      if(nrow(temp)>0){
+        
+        temp[1,]$A <- 0
+        
+        for(row in seq(2, by=1, length=nrow(temp))){
+          
+          temp[row,]$A <- temp[row,]$Vt - temp[row-1,]$Vt
+          
+        }
+        
+        AnalyseDfAcc <- rbind(AnalyseDfAcc, temp)
+      }
+    }
+}
+```
+
 ### Stability Test on Certain Point analysis
+
+This test would give important information about the hand tremor of the patient. If the pen was to touch the screen, or move a lot over the tablet, the patient would probably have the Parkinson's disease. To quantify this, I computed the number of points on the screen (basically every point where Z equal to 0) and the total distance on the X and Y axis of the pen.
+
+```{r computing values for Test2}
+patients <- patients %>% mutate(Z0_T2 = NA, DistT2 = NA)
+
+ for(index in seq(1, by=1, length=nrow(patients))){
+      
+      id <- patients[index,]$patientID
+      
+      temp <- completeDf %>% 
+        filter(patientID == id & TestID == 2) %>%
+        arrange(Timestamp) %>% select(X,Y,Z)
+      
+      if(nrow(temp)>0){
+        
+        patients[index,]$Z0_T2 <- nrow(temp %>% filter(Z == 0))
+        
+        temp <- temp %>% select(X,Y) %>% unique()
+        dist <-0
+        for(row in seq(2, by=1, length= nrow(temp)-1)){
+          dist <- dist + sqrt((temp[row,]$X - temp[row-1,]$X)^2+(temp[row,]$Y - temp[row-1,]$Y)^2)
+        }
+        patients[index,]$DistT2 <- dist
+      }
+    }
+
+```
 
 ## Issues
 
 ## Prediction algorithms
-
-### Creating training and testing sets
 
 ### Parameters
 
