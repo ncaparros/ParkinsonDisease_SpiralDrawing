@@ -1,5 +1,5 @@
 ---
-title: "ParkinsonDisease_SpiralDrawing"
+title: "Predicting Parkinson's disease diagnostic with digital handwriting tests"
 author: "Nina Caparros"
 date: "`r Sys.Date()`"
 documentclass: "article"
@@ -28,18 +28,19 @@ if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-
 if(!require(ggarrange)) install.packages("ggarrange", repos = "http://cran.us.r-project.org")
 if(!require(sp)) install.packages("sp", repos = "http://cran.us.r-project.org")
 if(!require(rgeos)) install.packages("rgeos", repos = "http://cran.us.r-project.org")
+if(!require(randomForest)) install.packages("randomForest", repos = "http://cran.us.r-project.org")
 ```
 
 
 # Introduction
 
-This report presents the analysis and results of the "Choose Your Own Project" from the HarvardX's ninth course of the Data Science Professional Certificate Program available on edx.org. The chosen thematic is the prediction of the Parkinson's disease diagnosis depending on the results of three tests, measuring the motor performance, the tremor and the hand stability.
+This report presented the analysis and results of the "Choose Your Own Project" from the HarvardX's ninth course of the Data Science Professional Certificate Program available on edx.org. The chosen thematic wass the prediction of the Parkinson's disease diagnosis depending on the results of three tests, measuring the motor performance, the tremor and the hand stability.
 
 ## Nota bene
 
-The terms anotated with an asterisk are explained or more detailled in the glossary at the end of the report.
+The terms anotated with an asterisk were explained or more detailled in the glossary at the end of the report.
 
-The following section is a quick presentation of the Parkinson's disease but is not mandatory to understand this report.
+The following section was a quick presentation of the Parkinson's disease but was not mandatory to understand this report.
 
 When not relevant, the code used to create this report is run but not displayed. The complete source code can be found on GitHub (https://github.com/ncaparros/ParkinsonDisease_SpiralDrawing).
 
@@ -57,9 +58,7 @@ The lack of dopamine (due to the death of those cells, and therefore induces a s
 
 The Figure 1 shows a lateral cross-section of a brain. The red arrows represent the dopamine's exchanges between the *pars reticula*. The Figure 2 shows the lack of dopaminergic neurons in a brain of a person affected by Parkinson's disease compared to a healthy brain.
 
-![Lateral cross-section of the brain (source : http://www.neuroconvention.com/)](img/brain_pd.jpg)
-
-![*Substancia nigra* differences between a healthy brain and a Parkinson's brain (source : https://scienceofparkinsons.com/)](img/sn.jpg)
+![Lateral cross-section of the brain (source : http://www.neuroconvention.com/)](img/brain_pd.jpg){width=50%, heigth=50%} ![*Substancia nigra* differences between a healthy brain and a Parkinson's brain (source : https://scienceofparkinsons.com/)](img/sn.jpg){width=50%, heigth=50%}
 
 Parkinson's disease affected 6.2 million people in 2015 and resulted in more than 117,000 deaths. This condition mostly occurs in people over the age of 60 (about one percent are affected). The average life expectancy following diagnosis is between 7 and 15 years.
 
@@ -71,7 +70,7 @@ In 2011, the Department of Neurology in Cerrahpasa Faculty of Medicine in Istanb
 
 It was decided to perform three handwriting tests on a graphic tablet (Wacom Cintiq 12WX graphics, see Figure 3). The tablet would measure several parameters as : the coordinates (x-y-z) of the pen on the table, the pressure over the screen, the grip angle on the pen at regular time intervals. A software was developped in order to test the coordination of the patient.
 
-![Wacom Cintiq 12WX graphics, source : https://www.bhphotovideo.com/](img/wacom.jpg)
+![Wacom Cintiq 12WX graphics, source : https://www.bhphotovideo.com/](img/wacom.jpg){width=50%, heigth=50%}
 
 ### Tests 
 
@@ -519,7 +518,7 @@ This section describes the analysis of the different tests in the dataset. Since
 
 The very first point to stress out was that every patient did not perform the three tests.
 
-```{r tests taken}
+```{r tests taken, echo=FALSE}
 ratiosDf %>% 
   ggplot() + 
   geom_histogram(aes(TestID, 
@@ -598,7 +597,7 @@ I built a method which would estimate the difference between the Archimedean Spi
 ```{r calculating distance between Archimedean Spiral and drawing0}
 
 #Initialisation of the values : total area difference between the drawing and the Archimedean spiral, and the standard deviation of the distance between the drawing and the spiral.
-patients <- patients %>% mutate(areaT0 = NA, areaT1 = NA, areaT2 = NA, sdT0 = NA, sdT1 = NA, sdT2 = NA)
+patients <- patients %>% mutate(areaT0 = NA, areaT1 = NA, sdT0 = NA, sdT1 = NA)
 
 Xadjust <- completeCalibratedDf %>% 
   filter(TestID != 2 & 
@@ -664,18 +663,26 @@ for(test in seq(0, by=1, length=2)){
   
   }
 }
+plotComparingTestsWithArchimedeanSpiral <- patients %>% ggplot()
 
- patients %>% ggplot() + geom_histogram(aes(areaT0, fill=isPwp, color=patientID), stat="bin") 
-  patients %>% ggplot() + geom_histogram(aes(areaT1, fill=isPwp, color=patientID), stat="bin") 
+plotT0Archi <- plotComparingTestsWithArchimedeanSpiral + geom_histogram(aes(areaT0, fill=isPwp, color=patientID), stat="bin") 
+
+plotT1Archi <- plotComparingTestsWithArchimedeanSpiral + geom_histogram(aes(areaT1, fill=isPwp, color=patientID), stat="bin") 
+
+plotSdT0Archi <- plotComparingTestsWithArchimedeanSpiral + geom_histogram(aes(sdT0, fill=isPwp, color=patientID), stat="bin") 
+
+plotSdT1Archi <- plotComparingTestsWithArchimedeanSpiral + geom_histogram(aes(sdT1, fill=isPwp, color=patientID), stat="bin") 
+
+ggarrange(plotT0Archi, plotT1Archi, plotSdT0Archi,plotSdT1Archi, ncol=2, nrow=2, common.legend = TRUE)
 
 ```
 
-This approach did not seem very conclusive. 
+This approach did not seem very conclusive. Even if the results of the healthy patient were close, many patients with Parkinson's disease had similar results. It seemed more appropriate to compare instead the drawings of the first two tests and to compute their area difference. I also computed the time difference between those two tests.
 
 ```{r calculating distance between Test 0 and Test 1}
 
 #Initialisation of the values : total area difference between the drawing and the Archimedean spiral, and the standard deviation of the distance between the drawing and the spiral.
-patients <- patients %>% mutate(areaT0_T1 = NA)
+patients <- patients %>% mutate(areaT0_T1 = NA, sdT0_T1 = NA)
 
   #For every patient in the data set
   for(p in seq(1, by=1, length=nrow(patients))){
@@ -715,16 +722,12 @@ patients <- patients %>% mutate(areaT0_T1 = NA)
       temp_df <- temp_df %>% mutate(dist = sqrt((X.x-X.y)^2+(Y.x-Y.y)^2)) %>% select(X.x,Y.y,dist)
       
       patients[p,]$areaT0_T1 <- sum(temp_df$dist)
+      patients[p,]$sdT0_T1 <- sd(temp_df$dist)
     }
   
   
   }
 
-patients %>% ggplot() + geom_histogram(aes(areaT0_T1, fill=isPwp, color=patientID), stat="bin") 
-
-```
-
-```{r times}
 times0 <- completeCalibratedDf %>% 
   filter(TestID == 0 & 
            Z == 0) %>% 
@@ -740,11 +743,24 @@ times1 <- completeCalibratedDf %>%
 times <- left_join(times0, times1, by="patientID")
 
 times <- times %>% 
-  mutate(difft = time1 - time0) %>% 
-  select(difft, patientID)
+  mutate(difft1_t0 = time1 - time0) %>% 
+  select(difft1_t0, patientID)
 
 patients <- left_join(patients, times, by="patientID")
+
+plotT0_T1 <- patients %>% ggplot() 
+
+plotAreaT0_T1 <- plotT0_T1 + geom_histogram(aes(areaT0_T1, fill=isPwp, color=patientID), stat="bin") 
+
+plotSdT0_T1 <- plotT0_T1 + geom_histogram(aes(sdT0_T1, fill=isPwp, color=patientID), stat="bin")
+
+plotDiffTimesT0_T1 <- plotT0_T1 + geom_histogram(aes(difft1_t0, fill=isPwp, color=patientID), stat="bin")
+
+ggarrange(plotAreaT0_T1,plotSdT0_T1, plotDiffTimesT0_T1, ncol=2, nrow=2, common.legend = TRUE)
+
 ```
+
+With this method, comparing the Static Spiral Test and the Dynamic Spiral Test, it was easier to categorize the patients. The results were more distinct.
 
 ### Instantaneous velocity (Static and Dynamic Test) analysis
 
@@ -861,10 +877,144 @@ patients <- patients %>% mutate(Z0_T2 = NA, DistT2 = NA)
 
 ## Issues
 
+The very first issue was that every patient did not take the three tests. I needed then to come up with algorithms managing the different cases.
+
+```{r analysing different cases}
+couplesTestsPatients <- df %>% select(patientID,TestID) %>% group_by(patientID, TestID) %>% unique()
+PatientsT0 <- couplesTestsPatients %>% filter(TestID == 0)
+PatientsT1 <- couplesTestsPatients %>% filter(TestID == 1)
+PatientsT2 <- couplesTestsPatients %>% filter(TestID == 2)
+
+#Are there any patients who took the SST but neither the DST nor the SOCP?
+PatientsT0 %>% filter(!patientID %in% PatientsT1$patientID & !patientID %in% PatientsT2$patientID) %>% nrow() > 0
+
+#Are there any patients who took the SST and the DST but not the SOCP?
+PatientsT0 %>% filter(patientID %in% PatientsT1$patientID & !patientID %in% PatientsT2$patientID) %>% nrow() > 0
+
+#Are there any patients who took the SST and the SOCP but not the DST?
+PatientsT0 %>% filter(!patientID %in% PatientsT1$patientID & patientID %in% PatientsT2$patientID) %>% nrow() > 0
+
+#Are there any patients who took the SST, DST and SOCP ?
+PatientsT0 %>% filter(patientID %in% PatientsT1$patientID & patientID %in% PatientsT2$patientID) %>% nrow() > 0
+
+
+#Are there any patients who took the DST but neither the SST nor the SOCPI?
+PatientsT1 %>% filter(!patientID %in% PatientsT0$patientID & !patientID %in% PatientsT2$patientID) %>% nrow() > 0
+
+#Are there any patients who took the DST and the SOCP but not the SST?
+PatientsT1 %>% filter(patientID %in% PatientsT2$patientID & !patientID %in% PatientsT0$patientID) %>% nrow() > 0
+PatientsT2 %>% filter(patientID %in% PatientsT1$patientID & !patientID %in% PatientsT0$patientID) %>% nrow() > 0
+
+#Are there any patients who took the SOCP but neither the SST nor the DST?
+PatientsT2 %>% filter(!patientID %in% PatientsT0$patientID & !patientID %in% PatientsT1$patientID) %>% nrow() > 0
+```
+Thoses four different cases were, patients who :
+
+* Took the Static Spiral Test and only one of the other test (Dynamic Spiral Test or Stability On Certain Point Test)
+* Took all three tests
+* Took only the Stability On Certain Point Test
+
 ## Prediction algorithms
+
+In this section I defined the predition models and different algorithms.
+
+### Final prediction model
+
+Based on the previous observations I defined independant predictions as :
+
+* Prediction on the Static Spiral Test compared to the Archimedean Spiral ($\hat{Y}_{SST\sim Arch}$)
+* Prediction on the Static Spiral Test compared to the Dynamic Spiral Test ($\hat{Y}_{SST\sim DST}$)
+* Prediction on the Stability On Certain Point Test ($\hat{Y}_{SOCPT}$)
+
+When it was not possible to do the prediction due to the tests recorded, the value would be `NA`. I did a weighted average, figuring that the prediction on the Stability On Certain Point Test was more precise than the prediction on the Static Spiral Test compared to the Dynamic Spiral Test, and that this last one was more precise thant the prediction on the Static Spiral Test compared to the Archimedean Spiral as :
+
+$$\hat{Y} = \overline{\hat{Y}_{SST\sim Arch} + 2*\hat{Y}_{SST\sim DST} + 3*\hat{Y}_{SOCPT}}$$
+When there was a missing missing predictions, they were removed from the equation.
+
+### Chosing the prediction algorithms
+
+I picked two algorithms, the linear regression model (`lm`) and the random forest model (`randomForest`). The k-nearest neighboors was not approriate for the data gathered and computed. I would then do the mean between the two predictions.
+
+The model would become :
+
+$$\hat{Y} = \overline{\frac{\hat{Y}_{SST\sim Arch, lm} + \hat{Y}_{SST\sim Arch, rf}}{2} + 2*\frac{\hat{Y}_{SST\sim DST, lm} + \hat{Y}_{SST\sim DST, rf}}{2}+ 3*\frac{\hat{Y}_{SOCPT,lm}+\hat{Y}_{SOCPT,rf}}{2}}$$
+### Completing the training and testing sets
+
+In order to use all the parameters calculated and computed, I needed to merge the training and testing set with the complete `patients` data frame. This would allow me to not create testing and training sets again with the complete datas.
+
+```{r completing training and testing sets}
+trainingSet <- left_join(trainingSet, patients %>% select(-isPwp), by="patientID")
+testingSet <- left_join(testingSet, patients %>% select(-isPwp), by="patientID")
+```
 
 ### Parameters
 
+The variables used for each prediction model were :
+
+* Static Spiral Test compared to the Archimedean Spiral ($\hat{Y}_{SST\sim Arch}$) : area difference between the test 0 and the Archimedean spiral (`areaT0`) and its standard deviation (`sdT0`)
+* Static Spiral Test compared to the Dynamic Spiral Test ($\hat{Y}_{SST\sim DST}$) : area difference between the test 0 and the test 1 (`sdT0_T1`), its standard deviation ( `sdT0_T1`) and the difference of execution time between the two tests (`difft1_t0`)
+* Stability On Certain Point Test ($\hat{Y}_{SOCPT}$) : the number of points where the pen touched the screen (`Z0_T2`) and the total distance on the plan (`X`,`Y`) of the pen (`DistT2`)
+
+It was required to mutate `isPwp` to be a numeric instead of a boolean.
+
+```{r parsing isPwp to numeric, include=FALSE}
+trainingSet <- trainingSet %>% 
+  mutate(isPwp = as.numeric(isPwp))
+
+testingSet <- testingSet %>% 
+  mutate(isPwp = as.numeric(isPwp))
+```
+
+### Fitting models
+
+It was time to define the six fitting models and compute the different predictions:
+
+```{r fitting models}
+#Static Spiral Test compared to the Archimedean Spiral
+#LM :
+fit_SST_Arch_lm <- lm(isPwp ~ areaT0 + sdT0, data=trainingSet)
+yhat_SST_Arch_lm <- predict(fit_SST_Arch_lm, testingSet)
+
+#random forest
+fit_SST_Arch_rf <- randomForest(isPwp ~ areaT0 + sdT0, data=trainingSet)
+yhat_SST_Arch_rf <- predict(fit_SST_Arch_rf, testingSet)
+
+
+#Static Spiral Test compared to the Dynamic Spiral Test
+#LM :
+fit_SST_DST_lm <- lm(isPwp ~ areaT0_T1 + sdT0_T1 + difft1_t0, data=trainingSet)
+yhat_SST_DST_lm <- predict(fit_SST_DST_lm, testingSet)
+
+#random forest
+fit_SST_DST_rf <- randomForest(isPwp ~ areaT0_T1 + sdT0_T1 + difft1_t0, data=trainingSet, na.action = na.omit)
+yhat_SST_DST_rf <- predict(fit_SST_DST_rf, testingSet)
+
+
+#Stability On Certain Point Test
+#lm
+fit_SOCPT_lm <- lm(isPwp ~ Z0_T2 + DistT2, data=trainingSet)
+yhat_SOCPT_lm <- predict(fit_SOCPT_lm, testingSet)
+
+#random forest
+fit_SOCPT_rf <- randomForest(isPwp ~ Z0_T2 + DistT2, data=trainingSet, na.action=na.omit)
+yhat_SOCPT_rf <- predict(fit_SOCPT_rf, testingSet)
+
+
+#Computing the predictions
+yhatDf <- data.frame(yhat_SST_Arch_lm,
+                    yhat_SST_Arch_rf,
+                    yhat_SST_DST_lm,
+                    yhat_SST_DST_rf,
+                    yhat_SOCPT_lm,
+                    yhat_SOCPT_rf)
+
+yhatDf <- yhatDf %>% mutate(yhat_SST_Arch = (yhat_SST_Arch_lm + yhat_SST_Arch_rf)/2,
+                            yhat_SST_DST = (yhat_SST_DST_lm + yhat_SST_DST_rf)/2,
+                            yhat_SOCPT = (yhat_SOCPT_lm + yhat_SOCPT_rf)/2) %>%
+  select(yhat_SST_Arch,yhat_SST_DST,yhat_SOCPT)
+
+yhatDf <- yhatDf %>% rowwise() %>% mutate(yhat = weighted.mean(c(yhat_SST_Arch,yhat_SST_DST,yhat_SOCPT), c(1,2,3), na.rm=TRUE))
+```
 
 # Results
 
