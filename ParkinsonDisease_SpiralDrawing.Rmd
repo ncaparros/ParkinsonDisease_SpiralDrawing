@@ -39,8 +39,6 @@ This report presented the analysis and results of the "Choose Your Own Project" 
 
 ## Nota bene
 
-The terms anotated with an asterisk were explained or more detailled in the glossary at the end of the report.
-
 The following section was a quick presentation of the Parkinson's disease but was not mandatory to understand this report.
 
 When not relevant, the code used to create this report is run but not displayed. The complete source code can be found on GitHub (https://github.com/ncaparros/ParkinsonDisease_SpiralDrawing).
@@ -51,13 +49,13 @@ Parkinson's disease, sometimes abreviated to PD, is a long-term neurodegenerativ
 
 The disease affects mostly the motor system, as tremor, akinesia*, shaking, rigidity, slowness of movement, difficulty with walking,... and as it worsen it can cause depression, anxiety (more than a third of people with Parkinson's disease), emotional and sleep troubles, and in the advanced stages the disease can lead to dementia.
 
-The motor symptoms of the Parkinson's disease (parkinsonian syndrome) are caused by the death of cells, more precisely dopaminergic* neurons, in the *substantia nigra** (a region of the midbrain, see Figure 2). The *substantia nigra* is a basal ganglia* divided into to parts : the *pars reticula* * and the *pars compacta** (see Figure 1). It is the part of the brain that plays an important role in reward-seeking, learning and movement. 
+The motor symptoms of the Parkinson's disease (parkinsonian syndrome) are caused by the death of cells, more precisely dopaminergic* neurons, in the *substantia nigra* (a region of the midbrain, see Figure 2). The *substantia nigra* is a basal ganglia* divided into to parts : the *pars reticula* and the *pars compacta* (see Figure 1). It is the part of the brain that plays an important role in reward-seeking, learning and movement. 
 
 Dopamine is an organic chemical functioning as both an hormone and a neurotransmitter. Basically, neurotransmitters are chemical messengers which transmit signals by being released from one neuron to a receptor on the target cells. Neurotransmitters are critical to execute everyday functions as, in our case, movement (contact between a motor neuron  and a muscle fiber).
 
-The lack of dopamine (due to the death of those cells, and therefore induces a smaller substancia nigra than on a healthy subject, see Figure 2) provokes emotional troubles as said previously, and since the downsized *substancia nigra* is connected to the motor cortex (via the *pars reticula*, see Figure 1), it causes the parkisonian syndromes.
+The lack of dopamine (due to the death of those cells, and therefore induces a smaller substancia nigra than on a healthy subject, see Figure 1) provokes emotional troubles as said previously, and since the downsized *substancia nigra* is connected to the motor cortex (via the *pars reticula*, see Figure 1), it causes the parkisonian syndromes.
 
-The Figure 1 shows a lateral cross-section of a brain. The red arrows represent the dopamine's exchanges between the *pars reticula*. The Figure 2 shows the lack of dopaminergic neurons in a brain of a person affected by Parkinson's disease compared to a healthy brain.
+The Figure 1 (left) shows a lateral cross-section of a brain. The red arrows represent the dopamine's exchanges between the *pars reticula*. The Figure 1 (right) shows the lack of dopaminergic neurons in a brain of a person affected by Parkinson's disease compared to a healthy brain.
 
 ```{r, echo=FALSE,out.width="49%", out.height="20%",fig.cap="Lateral cross-section of the brain (left, source : http://www.neuroconvention.com/), *Substancia nigra* differences between a healthy brain and a Parkinson's brain (right, source : https://scienceofparkinsons.com/) ",fig.show='hold',fig.align='center'}
 knitr::include_graphics(c("img/brain_pd.jpg","img/sn.jpg"))
@@ -84,7 +82,7 @@ The three tests performed by the patients were :
 
 * **Dynamic Spiral Test (DST)** is a new test introduced in the study, where the archimedean spiral *blinks*. It is only seen at certain times. It becomes more difficult to follow the spiral.
 
-* **Stability Test on Certain Point** is a test where there is a red point in the middle of the tablet's screen, and the patients are asked to hold the pen on the point without touching the screen. This test determine the patient's hand stability and hand tremor level.
+* **Stability On Certain Point Test (SOCPT)** is a test where there is a red point in the middle of the tablet's screen, and the patients are asked to hold the pen on the point without touching the screen. This test determine the patient's hand stability and hand tremor level.
 
 ### Archimedean spiral
 
@@ -370,7 +368,9 @@ ratiosDf <- df %>%
   summarize(ratio=(max(X)-min(X))/(max(Y)-min(Y)), 
             L= max(Y)-min(Y), 
             isPwp = first(isPwp))
-ratiosDf %>% filter(TestID != 2) %>% 
+
+ratiosDf %>% 
+  filter(TestID != 2) %>% 
   ggplot() +
   geom_bar(aes(ratio, fill=TestID), stat="bin")+ 
   ggtitle("X-Y ratios")
@@ -915,6 +915,8 @@ patients <- patients %>% mutate(Z0_T2 = NA, DistT2 = NA)
 
 ## Issues
 
+### Tests inconsistency
+
 The very first issue was that every patient did not take the three tests. I needed then to come up with algorithms managing the different cases.
 
 ```{r analysing different cases}
@@ -989,6 +991,14 @@ Thoses four different cases were, patients who :
 * Took the Static Spiral Test and only one of the other test (Dynamic Spiral Test or Stability On Certain Point Test)
 * Took all three tests
 * Took only the Stability On Certain Point Test
+
+### Material inconsistency
+
+As seen in the Data Cleaning - Calibrating the samples section, the records were not on the same scale and sometimes not on the same starting point.
+
+### Missing software and informations
+
+Another issue was that I had no access to the software used to record the tests, nor to the configuration of the Archimedean spiral used for the tests. I did not have the frequency at which the SST blinked. My study and models were therefore limited. 
 
 ## Prediction algorithms
 
@@ -1102,22 +1112,8 @@ confusionMatrix(Yhat,
 
 The original study shows that it is possible to acquire handwriting tests and monitor Parkinson's disease with a digital tablet, using mostly the difference of acceleration for the Static Spiral drawing and the Dynamic Spiral drawing. I showed here that it was also possible to compute the area difference between those two tests, as well as the distance traveled by the pen on the Stability On Certain Point test, and that feeding these results in a random forest algorithm could predict accurately if the patient had or not Parkinson's disease. These tests could be used to determine if a patient should proceed with the medical tests and consult a specialist, without having to go to an hospital and get the invasive neurological tests (if not needed). When using `phat` (the prediction of the random forest algorithms), it could be possible to monitor the advancement of the disease. 
 
-# Glossary
+I believe that with more consistent datas and more information (and possibly more records), it is possible to meliorate the algorithm, and be more precise and accurate in the predictions and monitoring.
 
-**Akinesia** : Loss of motor function, resulting in impaired muscle movement.
-
-**Basal ganglia** : Group of structures situated at the base of the forebrain and top of the midbrain. It is strongly interconnected with the cerebral cortex and is associated with control of motor movements, cognition, emotion (non-exhaustive). The *substancia nigra** is a grey matter portion of the basal ganglia.
-
-![Basal ganglia (within red square, source : https://www.neuroscientificallychallenged.com)](img/basal-ganglia.jpg)
-
-**Dopaminergic** : Involving or transmitting dopamine (both hormone and neurotransmitter, plays a role in motor control, and mood)
-
-**Pars compacta** :
-
-**Pars reticula** :
-
-**Substancia nigra** : 
-# Table of figures
 
 # Sources and references
 
