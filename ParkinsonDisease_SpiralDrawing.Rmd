@@ -1100,7 +1100,7 @@ The accuracy we got with this model was of one, the perfect accuracy. There was 
 Yhat <- ifelse(p_hat >0.5, 1, 0) %>% 
   factor()
 
-phat
+p_hat
 
 confusionMatrix(Yhat, 
                 testingSet$isPwp %>% 
