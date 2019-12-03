@@ -35,7 +35,7 @@ if(!require(knitr)) install.packages("knitr", repos = "http://cran.us.r-project.
 
 # Introduction
 
-This report presented the analysis and results of the "Choose Your Own Project" from the HarvardX's ninth course of the Data Science Professional Certificate Program available on edx.org. The chosen thematic wass the prediction of the Parkinson's disease diagnosis depending on the results of three tests, measuring the motor performance, the tremor and the hand stability.
+This report presented the analysis and results of the "Choose Your Own Project" from the HarvardX's ninth course of the Data Science Professional Certificate Program available on edx.org. The chosen thematic was the prediction of the Parkinson's disease diagnosis depending on the results of three tests, measuring the motor performance, the tremor and the hand stability.
 
 ## Nota bene
 
@@ -47,17 +47,17 @@ When not relevant, the code used to create this report is run but not displayed.
 
 Parkinson's disease, sometimes abreviated to PD, is a long-term neurodegenerative disorder. Its cause is unknown, though it is believed to involve genetic (as relatives tend to contract the disease), and/or environmental factors (as pesticides). 
 
-The disease affects mostly the motor system, as tremor, akinesia*, shaking, rigidity, slowness of movement, difficulty with walking,... and as it worsen it can cause depression, anxiety (more than a third of people with Parkinson's disease), emotional and sleep troubles, and in the advanced stages the disease can lead to dementia.
+The disease affects mostly the motor system, as tremor, akinesia (loss of the power of voluntary movement), shaking, rigidity, slowness of movement, difficulty with walking,... and as it worsen it can cause depression, anxiety (more than a third of people with Parkinson's disease), emotional and sleep troubles, and in the advanced stages the disease can lead to dementia.
 
-The motor symptoms of the Parkinson's disease (parkinsonian syndrome) are caused by the death of cells, more precisely dopaminergic* neurons, in the *substantia nigra* (a region of the midbrain, see Figure 2). The *substantia nigra* is a basal ganglia* divided into to parts : the *pars reticula* and the *pars compacta* (see Figure 1). It is the part of the brain that plays an important role in reward-seeking, learning and movement. 
+The motor symptoms of the Parkinson's disease (parkinsonian syndrome) are caused by the death of cells, more precisely dopaminergic neurons, in the *substantia nigra* (a region of the midbrain, see Figure 1, left). The *substantia nigra* is a structure divided into to parts : the *pars reticula* and the *pars compacta* (see Figure 1, left). It is the part of the brain that plays an important role in reward-seeking, learning and movement. 
 
 Dopamine is an organic chemical functioning as both an hormone and a neurotransmitter. Basically, neurotransmitters are chemical messengers which transmit signals by being released from one neuron to a receptor on the target cells. Neurotransmitters are critical to execute everyday functions as, in our case, movement (contact between a motor neuron  and a muscle fiber).
 
-The lack of dopamine (due to the death of those cells, and therefore induces a smaller substancia nigra than on a healthy subject, see Figure 1) provokes emotional troubles as said previously, and since the downsized *substancia nigra* is connected to the motor cortex (via the *pars reticula*, see Figure 1), it causes the parkisonian syndromes.
+The lack of dopamine (due to the death of those cells, and therefore induces a smaller substancia nigra than on a healthy subject, see Figure 1, right) provokes emotional troubles, and since the downsized *substancia nigra* is connected to the motor cortex (via the *pars reticula*, see Figure 1, left), it causes the parkisonian syndromes.
 
 The Figure 1 (left) shows a lateral cross-section of a brain. The red arrows represent the dopamine's exchanges between the *pars reticula*. The Figure 1 (right) shows the lack of dopaminergic neurons in a brain of a person affected by Parkinson's disease compared to a healthy brain.
 
-```{r, echo=FALSE,out.width="49%", out.height="20%",fig.cap="Lateral cross-section of the brain (left, source : http://www.neuroconvention.com/),// *Substancia nigra* differences between a healthy brain and a Parkinson's brain (right, source : https://scienceofparkinsons.com/) ",fig.show='hold',fig.align='center'}
+```{r, echo=FALSE,out.width="49%", out.height="20%",fig.cap="Lateral cross-section of the brain (left, source : http://www.neuroconvention.com/), *Substancia nigra* differences between a healthy brain and a Parkinson's brain (right, source : https://scienceofparkinsons.com/) ",fig.show='hold',fig.align='center'}
 knitr::include_graphics(c("img/brain_pd.jpg","img/sn.jpg"))
 ``` 
 
@@ -66,11 +66,11 @@ Parkinson's disease affected 6.2 million people in 2015 and resulted in more tha
 
 ## Project overview
 
-In 2011, the Department of Neurology in Cerrahpasa Faculty of Medicine in Istanbul University (Turkey) provided a data set  of test results from 62 patients with the Parkinson's disease and 15 from healthy people for a study (Muhammed Erdem Isenkul, Betul Erdogdu Sakar and Olcay Kursun) which purpose was to monitor Parkinson's disease with digitized graphics tablet. The goal of this study was to provide easy access to Parkinson's disease progress monitoring to the elderly patients, or patients with an advanced stage of the disease, instead of the inconvenient and time-consuming process at the clinic. The tests aim to be non-invasive, would not require brain scans, would ease the work of the medical doctors, and would not require trained medical staff assigned to this task. 
+In 2011, the Department of Neurology in Cerrahpasa Faculty of Medicine in Istanbul University (Turkey) provided a data set of test results from 62 patients with the Parkinson's disease and 15 from healthy people for a study (Muhammed Erdem Isenkul, Betul Erdogdu Sakar and Olcay Kursun) which purpose was to monitor Parkinson's disease with digitalized graphic tablets. The goal of this study was to provide easy access to Parkinson's disease progress monitoring to the elderly patients, or patients with an advanced stage of the disease, instead of the inconvenient and time-consuming process at the clinic. The tests aim to be non-invasive, would not require brain scans, would ease the work of the medical doctors, and would not require trained medical staff assigned to this task. 
 
 ### Material
 
-It was decided to perform three handwriting tests on a graphic tablet (Wacom Cintiq 12WX graphics, see Figure 3). The tablet would measure several parameters as : the coordinates (x-y-z) of the pen on the table, the pressure over the screen, the grip angle on the pen at regular time intervals. A software was developped in order to test the coordination of the patient.
+It was decided to perform three handwriting tests on a graphic tablet (Wacom Cintiq 12WX graphics, see Figure 3). The tablet would measure several parameters as : the coordinates (x-y-z) of the pen on the tablet, the pressure over the screen, the grip angle on the pen at regular time intervals. A software was developped in order to test the coordination of the patient.
 
 ![Wacom Cintiq 12WX graphics, source : https://www.bhphotovideo.com/](img/wacom.jpg){width=50%}
 
@@ -78,18 +78,18 @@ It was decided to perform three handwriting tests on a graphic tablet (Wacom Cin
 
 The three tests performed by the patients were :
 
-* **Static Spiral Test (SST)** is a traditionnal test usually performed with paper and pencil. An Archimedean spiral (see following plot) is printed on it, and the patient needs to retrace it. The more the patient suffer from an advanced stage of the Parkinson's disease, the more differences between the archimedean spiral and his drawing.
+* **Static Spiral Test (SST)**, a traditionnal test usually performed with paper and pencil. An Archimedean spiral (see Figure 3 and *III-C Archimedean spiral*) is printed on it, and the patient needs to retrace it. The more the patient suffer from an advanced stage of the Parkinson's disease, the more differences between the archimedean spiral and his drawing.
 
-* **Dynamic Spiral Test (DST)** is a new test introduced in the study, where the archimedean spiral *blinks*. It is only seen at certain times. It becomes more difficult to follow the spiral.
+* **Dynamic Spiral Test (DST)**, a new test introduced in the study, where the archimedean spiral *blinks*. It is only seen at certain times. It becomes more difficult to follow the spiral.
 
-* **Stability On Certain Point Test (SOCPT)** is a test where there is a red point in the middle of the tablet's screen, and the patients are asked to hold the pen on the point without touching the screen. This test determine the patient's hand stability and hand tremor level.
+* **Stability On Certain Point Test (SOCPT)**, a test where there is a red point in the middle of the tablet's screen, and the patients are asked to hold the pen on the point without touching the screen. This test determines the patient's hand stability and hand tremor level.
 
 ### Archimedean spiral
 
 The Archimedean spiral (named after the Greek mathematician Archimedes), can be described by the polar coordinates equation :
 
 $$r = a + b\theta$$
-With $r$ the radius, $a$ real number turning the spiral, $b$ real number controling the distance between successive turnings, and $\theta$ the angle velocity. 
+With $r$ the radius, $a$ real number turning the spiral, $b$ real number controling the distance between successive turns, and $\theta$ the angle velocity. 
 The spiral \begin{quote} is the locus of points corresponding to the locations over time of a point moving away from a fixed point with constant speed along a line that rotates with constant angular velocity.
 \end{quote}
 
@@ -97,17 +97,82 @@ It can be described in the cartesian coordinates by :
 $$ x = (a+bt)*cos(t)$$
 $$ y = (a+bt)*sin(t)$$
 
-```{r archimedean spiral, echo=FALSE, fig.align="center", fig.cap="Archimedean spiral"}
- b <- 11.5
- t <- seq(0,6*pi, length.out=500)
+
+```{r archimedean spiral, echo=FALSE, fig.align="center", fig.cap="Archimedean spirals"}
+#####
+b1 <- 10.61
+ t1 <- seq(0,6*pi, length.out=1100)
+ x1 <- b1*t1 * (cos(t1))
+ y1 <- b1*t1 * -(sin(t1))
  
- x <- b*t * (cos(t))
- y <- b*t * - (sin(t))
+ #data frame containing the values (x,y) of the Archimedean spiral
+ archimedeanSpiral = data.frame(x1,y1)
+ 
+ #Ploting the Archimedean spiral and the points used to calibrate the samples.
+ plot1 <- archimedeanSpiral %>%
+   ggplot() +
+   geom_path(aes(x1,y1)) +
+   xlab("x")+
+   ylab("y")+
+   ggtitle("Length 6pi") +
+    coord_fixed(ratio=1)
+ 
+#####
+ a <- 20
+ b <- 30
+ t <- seq(0, pi/3, length.out=100)
+ 
+ x <- (a+b*t) * (cos(t))
+ y <- (a+b*t) * (sin(t))
  
  archimedeanSpiral = data.frame(x,y)
  
- ggplot() + 
-   geom_path(aes(x,y), color="red")
+ theta = pi/4
+ #####
+ angle.t <- seq(0, theta, length.out=100)
+ angle.x <- 5*cos(angle.t)
+ angle.y <- 5*sin(angle.t)
+ 
+ plot2 <- ggplot() + 
+   #Archimedean spiral
+   geom_path(aes(x,y)) +
+   
+   #a when t=0
+   geom_path(aes(c(0:a),0),col="#FFA434", size=1.5) +
+   geom_text(aes(15,3),label="a", col="#FFA434")+
+   
+   #a when t=pi/4
+   geom_path(aes(seq(0,
+                     a*cos(theta),
+                     length.out = 2),
+                 seq(0,
+                     (a*sin(theta)), 
+                     length.out = 2)), 
+                 col="#FFA434", size=1.5)+
+  geom_text(aes(5,10),label="a*t", col="#FFA434")+
+   
+   #b when t=pi/4
+   geom_path(aes(seq(a*cos(theta),
+                     a*cos(theta)+b*theta*cos(theta),
+                     length.out = 2),
+                 seq((a*sin(theta)),
+                     a*sin(theta)+b*theta*sin(theta), 
+                     length.out = 2)),
+                 col="#006837", size=1.5) + 
+  geom_text(aes(20,25),label="b*t", col="#006837")+
+
+   #t = pi/4
+  geom_curve(aes(x = 7, y = 0, xend = 7*cos(theta), yend = 7*sin(theta)),
+             color = "#2F86E0",
+             size=1,
+             arrow = arrow(type = "open", length = unit(7,"points")))+
+    geom_text(aes(9,6),label="t", col="#2F86E0")+
+   
+   coord_fixed(ratio=1)+
+   ggtitle("Length pi/3")
+ 
+ ggarrange(plot1,plot2, align="v", common.legend = TRUE, legend="bottom")
+ 
 ```
 
 ### Goal 
@@ -248,7 +313,7 @@ A new data frame containing one line by patient was then created and filled as :
 #Getting every patient in a dataframe 'patients'
 patients <- df %>% 
   select(patientID, isPwp) %>% 
-  distinct(patientID)
+  distinct(patientID, isPwp)
 
 kable(head(patients))
 ```
@@ -361,7 +426,7 @@ completeDf %>%
 
 This disparity between the samples prevented me from trying to analyse the spacial differences between the generated Archimedean spiral and the patient's drawing. I checked if the timestamp data seemed affected or not (see Plot). It seemed as only the X and Y values were sometimes off.
 
-```{r checking timestamps, echo=FALSE, warning=FALSE}
+```{r checking timestamps, echo=FALSE, message=FALSE, warning=FALSE}
 #Ploting (bar plot) the time needed by each patient to complete the SST. It shows that the timestamps do not seem to be affected by the material. 
 completeDf %>% 
   filter(TestID == 0) %>% 
@@ -377,7 +442,7 @@ completeDf %>%
 
 To calibrate the X and Y values, the ratios $\frac{X}{Y}$ were calculated and stored in a new data frame *ratiosDf*, by patient and test. This data frame contained the ratio between X and Y as $$ratio=\frac{X_{max} - X_{min}}{Y_{max}-Y_{min}}$$
 
-```{r calculate ratios, echo=FALSE, warning=FALSE}
+```{r calculate ratios, echo=FALSE, message=FALSE, warning=FALSE}
 #Create a dataframe 'ratiosDf' which contains the ratio X/Y (ratio), the height of the sample (H) and isPwp for each couple (patient,test)
 ratiosDf <- df %>% 
   group_by(patientID, TestID) %>% 
@@ -496,7 +561,7 @@ for(test in seq(0, by=1, length=2)){
       ratio <- ratioLines[1,]$ratio
       
       #get the height for current patient and current test (we are standardizing X depending of Y)
-      L <- ratioLines[1,]$L
+      H <- ratioLines[1,]$H
       
       #get temporary data frame for current patient and current test, arranged by timestamp
       temp_df <- completeDf %>% 
@@ -1151,7 +1216,7 @@ The accuracy we got with this model was of one, the perfect accuracy. There was 
 Yhat <- ifelse(p_hat >0.5, 1, 0) %>% 
   factor()
 
-p_hat
+Yhat
 
 confusionMatrix(Yhat, 
                 testingSet$isPwp %>% 
