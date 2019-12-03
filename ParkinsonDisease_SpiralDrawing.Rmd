@@ -57,7 +57,7 @@ The lack of dopamine (due to the death of those cells, and therefore induces a s
 
 The Figure 1 (left) shows a lateral cross-section of a brain. The red arrows represent the dopamine's exchanges between the *pars reticula*. The Figure 1 (right) shows the lack of dopaminergic neurons in a brain of a person affected by Parkinson's disease compared to a healthy brain.
 
-```{r, echo=FALSE,out.width="49%", out.height="20%",fig.cap="Lateral cross-section of the brain (left, source : http://www.neuroconvention.com/), *Substancia nigra* differences between a healthy brain and a Parkinson's brain (right, source : https://scienceofparkinsons.com/) ",fig.show='hold',fig.align='center'}
+```{r, echo=FALSE,out.width="49%", out.height="20%",fig.cap="Lateral cross-section of the brain (left, source : http://www.neuroconvention.com/),// *Substancia nigra* differences between a healthy brain and a Parkinson's brain (right, source : https://scienceofparkinsons.com/) ",fig.show='hold',fig.align='center'}
 knitr::include_graphics(c("img/brain_pd.jpg","img/sn.jpg"))
 ``` 
 
@@ -100,10 +100,14 @@ $$ y = (a+bt)*sin(t)$$
 ```{r archimedean spiral, echo=FALSE, fig.align="center", fig.cap="Archimedean spiral"}
  b <- 11.5
  t <- seq(0,6*pi, length.out=500)
+ 
  x <- b*t * (cos(t))
  y <- b*t * - (sin(t))
+ 
  archimedeanSpiral = data.frame(x,y)
- ggplot() + geom_path(aes(x,y), color="red")
+ 
+ ggplot() + 
+   geom_path(aes(x,y), color="red")
 ```
 
 ### Goal 
@@ -117,6 +121,7 @@ The dataset provided was an archive .zip containing three folders. One of them w
 Each text file of the dataset was the test results of a single patient. Each line of the file represented one measure, at a certain time, of the X-Y-Z coordinates of the digital pen, the pressure of the pen on the screen, the grip angle, the timestamp (at which the measure had been taken) and the test identifier (Static Spiral Test : 0, Dynamic Spiral Test : 1, Stability Test on Certain Point :2).
 
 ```{r extracting datas and building data frame, include=FALSE}
+#Function to extract the dataframe from either the data in the repository (local, from GitHub) or from the UCI website
 createDf <- function(){
   
   #File path to the directory containing the datas of the healthy people (controls)
@@ -171,7 +176,7 @@ if(dir.exists("data")){
 
   df <- createDf()
   
-}else{
+} else {
     #Second case : the data does not exist on the working directory
     
     #Names for : the created temporary directory, the directory we need to move, main the directory
@@ -191,7 +196,7 @@ if(dir.exists("data")){
       file.copy(paste0(dirpath,"/",dirToMove,"/",file), dirToKeep)
     })
     
-    #building the data frame
+    #building the data frame df
     df <- createDf()
     
     #Removing the temporary directory
@@ -228,7 +233,10 @@ kable(head(df))
 Then, each value had to be extracted into a new column of the data frame.
 
 ```{r extracting data, echo=FALSE}
-df <- df %>% separate(V1, c("X", "Y", "Z", "Pressure", "GripAngle","Timestamp", "TestID"),";")
+#Extracting values into columns
+df <- df %>% 
+  separate(V1, c("X", "Y", "Z", "Pressure", "GripAngle","Timestamp", "TestID"),";")
+
 kable(head(df))
 ```
 
@@ -237,9 +245,11 @@ X and Y represents the place of the pen on the tablet, we can assume horizontall
 A new data frame containing one line by patient was then created and filled as :
 
 ```{r extracting patients, echo=FALSE}
+#Getting every patient in a dataframe 'patients'
 patients <- df %>% 
   select(patientID, isPwp) %>% 
-  distinct(patientID, isPwp)
+  distinct(patientID)
+
 kable(head(patients))
 ```
 
@@ -260,6 +270,7 @@ lapply(df,class)
 It was impossible then to perform any action on those values, so they were all converted as numeric with the `as.numeric` function.
 
 ```{r text values as numeric, include=FALSE}
+#Converting string values into numeric values
 df <- df %>% mutate(X = as.numeric(X),
                     Y = as.numeric(Y),
                     Z = as.numeric(Z),
@@ -284,6 +295,7 @@ To be able to use the timestamp more easily, and mostly because we do not know i
 ```{r cleaning timestamp, echo=FALSE}
 kable(head(df))
 
+#create a new dataframe into which convert the timestamp values into more readable and interpretable values
 completeDf <- data.frame()
 
 #For each of the tests "test"
@@ -324,17 +336,19 @@ With this modification, it was easier to compare the timestamps between patients
 A quick look at the test results (the drawings) showed that the samples were not all consistent in term of X-Y ratio (see Plot). Seven samples can be seen with a X-Y ratio of almost 2 instead of 1. With the Archimead spiral formula in mind, it seemed odd that a small part of the patients would have been given a different test with a different drawing to follow. 
 
 ```{r ploting X-Y for Test0, echo=FALSE}
+#Ploting the samples for the SST by patient. It shows the different ratios in the records.
 completeDf %>% 
   filter(TestID == 0) %>% 
   ggplot() +
   geom_point(aes(X,Y, color=patientID), 
              show.legend = FALSE) + 
-  ggtitle("Different ratios for Test 0 samples")
+  ggtitle("Different ratios by patient for SST samples")
 ```
 
 Another odd detail was a spacial gap between patterns with the same ratio (see Plot). One of the control sample seemed to have been shifted.
 
 ```{r ploting X-Y for Test0 and controls, echo=FALSE}
+#Ploting the samples for healthy controls on the SST, by patient. It shows the spatial shift between the samples
 completeDf %>% 
   filter(TestID == 0 & 
            isPwp == FALSE) %>% 
@@ -342,12 +356,13 @@ completeDf %>%
   geom_point(aes(X,Y, 
                  color=patientID), 
              show.legend = FALSE) + 
-  ggtitle("Spatial gap for Test 0 samples")
+  ggtitle("Spatial gap for SST samples")
 ```
 
 This disparity between the samples prevented me from trying to analyse the spacial differences between the generated Archimedean spiral and the patient's drawing. I checked if the timestamp data seemed affected or not (see Plot). It seemed as only the X and Y values were sometimes off.
 
 ```{r checking timestamps, echo=FALSE, warning=FALSE}
+#Ploting (bar plot) the time needed by each patient to complete the SST. It shows that the timestamps do not seem to be affected by the material. 
 completeDf %>% 
   filter(TestID == 0) %>% 
   group_by(patientID) %>% 
@@ -357,18 +372,20 @@ completeDf %>%
   geom_histogram(aes(maxT, 
                      fill=isPwp), 
                  stat="bin")+ 
-  ggtitle("Sample Timestamps for Test 0")
+  ggtitle("Sample times for SST by patient")
 ```
 
 To calibrate the X and Y values, the ratios $\frac{X}{Y}$ were calculated and stored in a new data frame *ratiosDf*, by patient and test. This data frame contained the ratio between X and Y as $$ratio=\frac{X_{max} - X_{min}}{Y_{max}-Y_{min}}$$
 
 ```{r calculate ratios, echo=FALSE, warning=FALSE}
+#Create a dataframe 'ratiosDf' which contains the ratio X/Y (ratio), the height of the sample (H) and isPwp for each couple (patient,test)
 ratiosDf <- df %>% 
   group_by(patientID, TestID) %>% 
   summarize(ratio=(max(X)-min(X))/(max(Y)-min(Y)), 
-            L= max(Y)-min(Y), 
+            H= max(Y)-min(Y), 
             isPwp = first(isPwp))
 
+#Plot the ratios by test for SST and DST. It shows the gap between ratios. In the ideal case, every ratio would be of one.
 ratiosDf %>% 
   filter(TestID != 2) %>% 
   ggplot() +
@@ -378,6 +395,7 @@ ratiosDf %>%
 We can indeed see that even if most ratios are around 1.3, some outliers are around 2. Even the initial point of the drawing was different (see next plot).
 
 ```{r starts of drawings for test 0, echo=FALSE}
+#Ploting the first point of each sample (by isPwp) for the SST. It shows the spatial gap between the samples. In the ideal case, they would all be similar.
 completeDf %>% 
   filter(TestID == 0 & 
            Timestamp == 0) %>% 
@@ -421,14 +439,17 @@ $$Y_{param} = \frac{(Y_{initial} + Y_{min} + Y_{max})}{3}$$
 This model took into account the assumption of which the very first values X,Y were, in general, the closest to the Archimedean Spiral when $Timestamp = 0$. $X_{min}$ and $X_{max}$ (and respectively $Y_{min}$ and $Y_{max}$) were approximations of the very tip of the drawings (see plot).
 
 ```{r modeling the Spiral and X-Y params, echo=FALSE}
-
- b <- 12
+#Creating an Archimedean spiral. The choice of the arguments is detailed later (see III-C Defining the Archimedean Spiral)
+#b was calculated manually, t determined (the spiral is three complete turns, which means 3*2pi =6pi)
+ b <- 10.61
  t <- seq(0,6*pi, length.out=1100)
  x <- b*t * (cos(t))
  y <- b*t * -(sin(t))
  
+ #data frame containing the values (x,y) of the Archimedean spiral
  archimedeanSpiral = data.frame(x,y)
  
+ #determined the points used to calibrate the samples. X min, max and first value, Y min and max
  points <- archimedeanSpiral %>% 
    filter(x == min(x) | 
             x == max(x) | 
@@ -436,10 +457,13 @@ This model took into account the assumption of which the very first values X,Y w
             y == max(y) | 
             x == first(x))
  
+ #Ploting the Archimedean spiral and the points used to calibrate the samples.
  archimedeanSpiral %>%
    ggplot() +
    geom_path(aes(x,y)) +
-   geom_point(data = points, aes(x,y),color="red") +
+   geom_point(data = points, 
+              aes(x,y),
+              color="red") +
    ggtitle("Points used to slide the drawings")
 ```
 
@@ -451,7 +475,7 @@ $$Y_{i,p,t} = \frac{Y_{old_i} - Y_{param}}{L_{p,t}}*400 = 400\frac{(Y_{old_i} - 
 
 ```{r calibrating X and Y, echo=FALSE}
 
-#new data frame
+#new data frame to contain the calibrated X and Y values
 completeCalibratedDf <- data.frame()
 
 #for each test
@@ -492,22 +516,27 @@ for(test in seq(0, by=1, length=2)){
       
       #mutate X and Y with 
       temp_df <- temp_df %>%
-        mutate(X = ((X - pX)/(ratio*L))*400, 
-               Y = (Y - pY)/L*400)
+        mutate(X = ((X - pX)/(ratio*H))*400, 
+               Y = (Y - pY)/H*400)
 
-      
+      #binding the already calibrated values to the ones just calibrated
       completeCalibratedDf <- rbind(completeCalibratedDf, temp_df)
     }
 
   }
 }
 
+#parameter to adjust (slide) the Archimedean spiral on the X axis. This will NOT be used for prediction, only for the visualization of the calibrating. That is why it is on the whole dataset (not training set).
+#It is the mean of the first X for healthy patients, for SST and DST.
 Xadjust <- completeCalibratedDf %>% 
   filter(TestID != 2 & 
            Timestamp==0 & 
            isPwp == FALSE) %>% 
   pull(X) %>% 
   mean()
+
+#parameter to adjust (slide) the Archimedean spiral on the Y axis. This will NOT be used for prediction, only for the visualization of the calibrating. That is why it is on the whole dataset (not training set).
+#It is the mean of the first Y for healthy patients, for SST and DST.
 Yadjust <- completeCalibratedDf %>% 
   filter(TestID != 2 & 
            Timestamp==0 & 
@@ -515,19 +544,23 @@ Yadjust <- completeCalibratedDf %>%
   pull(Y) %>% 
   mean()
 
- b <- 12
+#Archimedean spiral adjusted (slid on X and Y with the previous adjustments parameters)
+ b <- 10.61
  t <- seq(0,6*pi, length.out=1100)
  x <- b*t * (cos(t)) + Xadjust
  y <- b*t * -(sin(t)) + Yadjust
+ 
+ #dataframe containing the X,Y values of the Archimedean spiral
  archimedeanSpiral = data.frame(x,y)
 
+ #Ploting the calibrated samples and the slid Archimedean spiral to show the improvement in the samples. They are now more consistent.
 completeCalibratedDf %>% 
   filter(TestID == 0) %>% 
   ggplot() + 
   geom_point(aes(X,Y, 
                  color=patientID), 
              show.legend = FALSE) + 
-  ggtitle("Calibrated samples for Test 0 and 1") + 
+  ggtitle("Calibrated samples for SST and DST") + 
   geom_point(data=archimedeanSpiral, aes(x,y), color="red")
 
 ```
@@ -542,6 +575,7 @@ This section describes the analysis of the different tests in the dataset. Since
 The very first point to stress out was that every patient did not perform the three tests.
 
 ```{r tests taken, echo=FALSE, warning=FALSE}
+#Ploting the number of each test taken. It shows that not every patient took all the tests.
 ratiosDf %>% 
   ggplot() + 
   geom_histogram(aes(TestID, 
@@ -550,7 +584,7 @@ ratiosDf %>%
   ggtitle("Tests taken")
 ```
 
-This would probably alter the accuracy of the future predictions. The original study based its analysis on the combination of tests 0 and 1, and though every patient took the first test (Static Spiral Test), some tests 1 (Dynamic Spiral Test) were missing from the dataset. I had to base a prediction method on the sole first test for the patients who only took this one.
+This would probably alter the accuracy of the future predictions. The original study based its analysis on the combination of SST and DST, and though every patient took the SST (Static Spiral Test), some DST (Dynamic Spiral Test) were missing from the dataset. This issue is detailed and handled on section IV-A Test inconsistency.
 
 ### Creating training and testing sets
 
@@ -563,12 +597,13 @@ I created several sub-datasets as :
 * `subTest2Parkinsons` : a dataset with only patients with the Parkinson's disease, who had taken the Stability on Certain Point Test
 
 ```{r building subsets, include=FALSE}
-
+#Data frame containing the unique couples patient/test. It will allow me to split the datas into the four datasets I need to create training and testings sets with every cases (controls, patients/SOCPT and SST-DST)
 groupedPatientTestDf <- df %>% 
   group_by(patientID, TestID) %>% 
   select(patientID, TestID, isPwp) %>% 
   unique()
 
+#data frame with healthy controls who took the SOCPT
 subTest2Ctrl <- groupedPatientTestDf %>% 
   filter(TestID == 2 & 
            isPwp==FALSE) %>% 
@@ -576,6 +611,7 @@ subTest2Ctrl <- groupedPatientTestDf %>%
   select(patientID) %>% 
   unique()
 
+#data frame with people with Parkinson's who took the SOCPT
 subTest2Parkinsons  <- groupedPatientTestDf %>% 
   filter(TestID == 2 & 
            isPwp==TRUE) %>% 
@@ -583,6 +619,7 @@ subTest2Parkinsons  <- groupedPatientTestDf %>%
   select(patientID) %>% 
   unique()
 
+#data frame with healthy controls who did not took the SOCPT
 subControls <- groupedPatientTestDf %>% 
   filter(isPwp==FALSE & 
            !patientID %in% subTest2Ctrl$patientID) %>% 
@@ -590,6 +627,7 @@ subControls <- groupedPatientTestDf %>%
   select(patientID) %>% 
   unique()
 
+#data frame with people with Parkinson's who did not took the SOCPT
 subParkinsons <- groupedPatientTestDf %>% 
   filter(isPwp==TRUE & 
            !patientID %in% subTest2Parkinsons$patientID) %>% 
@@ -597,6 +635,7 @@ subParkinsons <- groupedPatientTestDf %>%
   select(patientID) %>% 
   unique()
 
+#checking if the number of patients in each data frame is consistent with the total number of patients
 nrow(subTest2Ctrl) + 
   nrow(subTest2Parkinsons) + 
   nrow(subControls) +
@@ -615,6 +654,7 @@ testIndexCtrl <- sample(1:nrow(subControls),
 testIndexParkinsons <- sample(1:nrow(subParkinsons), 
                               floor(nrow(subParkinsons)*0.1)+1) 
 
+#binding the sample patient ids from each sub-data set in a testing data set
 testing_patients <- subTest2Ctrl[testIndexT2Ctrl,]
 
 testing_patients <- rbind(testing_patients, 
@@ -626,9 +666,11 @@ testing_patients <- rbind(testing_patients,
 testing_patients <- rbind(testing_patients, 
                           subParkinsons[testIndexParkinsons,])
 
+#creating the testing dataset with all columns from the data frame patients
 testingSet <- patients %>% 
   filter(patientID %in% testing_patients$patientID)
 
+#creating the training dataset with all columns from the data frame patients
 trainingSet <- patients %>% 
   filter(!patientID %in% testing_patients$patientID)
 ```
@@ -693,6 +735,10 @@ patients <- patients %>% mutate(areaT0 = NA,
                                 sdT0 = NA, 
                                 sdT1 = NA)
 
+#calibrating the Archimedean spiral 
+#with first X value of SST 
+#and DST from healthy controls
+#in the testing data set
 Xadjust <- completeCalibratedDf %>% 
   filter(TestID != 2 & 
            Timestamp==0 & 
@@ -700,6 +746,11 @@ Xadjust <- completeCalibratedDf %>%
            isPwp == FALSE) %>% 
   pull(X) %>% 
   mean()
+
+#calibrating the Archimedean spiral 
+#with first Y value of SST 
+#and DST from healthy controls
+#in the testing data set
 Yadjust <- completeCalibratedDf %>% 
   filter(TestID != 2 & 
            Timestamp==0 & 
