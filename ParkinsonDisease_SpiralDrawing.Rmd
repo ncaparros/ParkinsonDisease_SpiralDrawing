@@ -94,85 +94,101 @@ The spiral \begin{quote} is the locus of points corresponding to the locations o
 \end{quote}
 
 It can be described in the cartesian coordinates by :
-$$ x = (a+bt)*cos(t)$$
-$$ y = (a+bt)*sin(t)$$
+$$ x = (a + bt) * cos(t)$$
+$$ y = (a +  bt) * sin(t)$$
 
 
 ```{r archimedean spiral, echo=FALSE, fig.align="center", fig.cap="Archimedean spirals"}
-#####
-b1 <- 10.61
- t1 <- seq(0,6*pi, length.out=1100)
- x1 <- b1*t1 * (cos(t1))
- y1 <- b1*t1 * -(sin(t1))
- 
- #data frame containing the values (x,y) of the Archimedean spiral
- archimedeanSpiral = data.frame(x1,y1)
- 
- #Ploting the Archimedean spiral and the points used to calibrate the samples.
- plot1 <- archimedeanSpiral %>%
-   ggplot() +
-   geom_path(aes(x1,y1)) +
-   xlab("x")+
-   ylab("y")+
-   ggtitle("Length 6pi") +
-    coord_fixed(ratio=1)
- 
-#####
- a <- 20
- b <- 30
- t <- seq(0, pi/3, length.out=100)
- 
- x <- (a+b*t) * (cos(t))
- y <- (a+b*t) * (sin(t))
- 
- archimedeanSpiral = data.frame(x,y)
- 
- theta = pi/4
- #####
- angle.t <- seq(0, theta, length.out=100)
- angle.x <- 5*cos(angle.t)
- angle.y <- 5*sin(angle.t)
- 
- plot2 <- ggplot() + 
-   #Archimedean spiral
-   geom_path(aes(x,y)) +
-   
-   #a when t=0
-   geom_path(aes(c(0:a),0),col="#FFA434", size=1.5) +
-   geom_text(aes(15,3),label="a", col="#FFA434")+
-   
-   #a when t=pi/4
-   geom_path(aes(seq(0,
-                     a*cos(theta),
-                     length.out = 2),
-                 seq(0,
-                     (a*sin(theta)), 
-                     length.out = 2)), 
-                 col="#FFA434", size=1.5)+
-  geom_text(aes(5,10),label="a*t", col="#FFA434")+
-   
-   #b when t=pi/4
-   geom_path(aes(seq(a*cos(theta),
-                     a*cos(theta)+b*theta*cos(theta),
-                     length.out = 2),
-                 seq((a*sin(theta)),
-                     a*sin(theta)+b*theta*sin(theta), 
-                     length.out = 2)),
-                 col="#006837", size=1.5) + 
-  geom_text(aes(20,25),label="b*t", col="#006837")+
+#Here we build two Archimedean spirals. The equations are : x(t)= (a+bt)cos(t) and y(t)= (a+bt)sin(t)
+#Archimedean spiral similar to the one used in the tests. a=0, b=10.61, and it does 3 turns (6pi). This spiral is to be plot on the left of the figure.
+archSpiral6pi.b <- 10.61
+archSpiral6pi.t <- seq(0, 6*pi, length.out = 1100)
+archSpiral6pi.x <- archSpiral6pi.b * archSpiral6pi.t * cos(archSpiral6pi.t)
+archSpiral6pi.y <- archSpiral6pi.b * archSpiral6pi.t * -(sin(archSpiral6pi.t))
 
-   #t = pi/4
-  geom_curve(aes(x = 7, y = 0, xend = 7*cos(theta), yend = 7*sin(theta)),
-             color = "#2F86E0",
-             size=1,
-             arrow = arrow(type = "open", length = unit(7,"points")))+
-    geom_text(aes(9,6),label="t", col="#2F86E0")+
-   
-   coord_fixed(ratio=1)+
-   ggtitle("Length pi/3")
+#Ploting the Archimedean spiral.
+plot1 <- ggplot() +
+  geom_path(aes(archSpiral6pi.x, archSpiral6pi.y)) +
+  xlab("x")+
+  ylab("y")+
+  ggtitle("Length 6pi") +
+  coord_fixed(ratio = 1)
  
- ggarrange(plot1,plot2, align="v", common.legend = TRUE, legend="bottom")
+#Archimedean spiral used to show the parameters a (=20), b (=30), t (length=pi/3)
+archSpiralpi_3.a <- 20
+archSpiralpi_3.b <- 30
+archSpiralpi_3.t <- seq(0, pi/3, length.out = 100)
+
+archSpiralpi_3.x <- (archSpiralpi_3.a + archSpiralpi_3.b * archSpiralpi_3.t) * cos(archSpiralpi_3.t)
+archSpiralpi_3.y <- (archSpiralpi_3.a + archSpiralpi_3.b * archSpiralpi_3.t) * sin(archSpiralpi_3.t)
+
+#theta (=t = pi/4) is the angle used in the plot to show the parameters a, b and t
+theta = pi/4
+
+#The second plot of the figure, showing the Archimedean spiral of length pi/3
+plot2 <- ggplot() + 
+ #Archimedean spiral
+ geom_path(aes(archSpiralpi_3.x, archSpiralpi_3.y)) +
+ xlab("x")+
+ ylab("y")+
+  
+ #a when t=0. x(0) = (a+bt)*cos(0) = (a + 0)*1 = a and y(0) = (a+ bt)*sin(0) = (a + 0)*0=0
+ geom_path(aes(c(0:archSpiralpi_3.a), 0),
+           col = "#FFA434", 
+           size = 1.5) +
+ geom_text(aes(15, 3),
+           label = "a", 
+           col = "#FFA434")+
  
+#a when t=pi/4. 
+#x(t) = (a+bt)*cos(t) = a*cos(t) + b*(t)*cos(t) 
+#and y(t) = (a + bt)*sin(t) = a*sin(t) + b*(t)*sin(t)
+#So the a-part of x is a*cos(theta) and the a-part of y is a*sin(theta)
+ geom_path(aes(seq(0, archSpiralpi_3.a * cos(theta),
+                   length.out = 2),
+               seq(0, (archSpiralpi_3.a * sin(theta)), 
+                   length.out = 2)),
+           col = "#FFA434", 
+           size = 1.5)+
+geom_text(aes(5, 10),
+          label = "a*t", 
+          col = "#FFA434")+
+ 
+#b when t=pi/4
+#x(t) = (a+bt)*cos(t) = a*cos(t) + b*(t)*cos(t) 
+#and y(t) = (a + bt)*sin(t) = a*sin(t) + b*(t)*sin(t)
+#So the b-part of x is b*theta*cos(theta) and the b-part of y is b*theta*sin(theta)
+ geom_path(aes(seq(archSpiralpi_3.a * cos(theta),
+                   archSpiralpi_3.a * cos(theta) + archSpiralpi_3.b * theta * cos(theta),
+                   length.out = 2),
+               seq((archSpiralpi_3.a * sin(theta)),
+                   archSpiralpi_3.a * sin(theta) + archSpiralpi_3.b * theta * sin(theta), 
+                   length.out = 2)),
+           col = "#006837", 
+           size = 1.5) + 
+geom_text(aes(20, 25),
+          label = "b*t", 
+          col = "#006837") +
+
+#t = pi/4
+#Here we represent the angle on the plot.
+geom_curve(aes(x = 7, 
+               y = 0, 
+               xend = 7 * cos(theta), 
+               yend = 7 * sin(theta)),
+           col = "#2F86E0",
+           size = 1,
+           arrow = arrow(type = "open", 
+                         length = unit(7,"points"))) +
+  geom_text(aes(9, 6),
+            label = "t", 
+            col = "#2F86E0") +
+ 
+ coord_fixed(ratio = 1) +
+ ggtitle("Length pi/3")
+
+ggarrange(plot1, plot2, align="v", common.legend = TRUE, legend = "bottom")
+
 ```
 
 ### Goal 
@@ -224,7 +240,7 @@ createDf <- function(){
     #add id and isPwp as column
     t <- cbind(read.table( file = paste(filePathPwp,
                                         x, 
-                                        sep="")), 
+                                        sep = "")), 
                patientID = randID, 
                isPwp = TRUE)
   }))
@@ -254,11 +270,12 @@ if(dir.exists("data")){
     download.file("https://archive.ics.uci.edu/ml/machine-learning-databases/00395/PARKINSON_HW.zip", dl)
     
     #unziping the archive
-    unzip(dl, exdir="data")
+    unzip(dl, exdir = "data")
     
     #Copy the files from the new_dataset/parkinson into the main directory hw_dataset/parkinson
-    sapply(c(list.files(paste0(dirpath,"/",dirToMove))), function(file){
-      file.copy(paste0(dirpath,"/",dirToMove,"/",file), dirToKeep)
+    sapply(c(list.files(paste0(dirpath, "/", dirToMove))), function(file){
+      file.copy(paste0(dirpath, "/", dirToMove, "/", file), 
+                dirToKeep)
     })
     
     #building the data frame df
@@ -292,6 +309,7 @@ Once the data downloaded and the data frame built (see previous section), the fi
 * it allowed to not get focused on the patient id.
 
 ```{r patientID and isPWP, echo=FALSE,results='asis' }
+#Plot the dataset extracted
 kable(head(df))
 ```
 
@@ -300,7 +318,7 @@ Then, each value had to be extracted into a new column of the data frame.
 ```{r extracting data, echo=FALSE}
 #Extracting values into columns
 df <- df %>% 
-  separate(V1, c("X", "Y", "Z", "Pressure", "GripAngle","Timestamp", "TestID"),";")
+  separate(V1, c("X", "Y", "Z", "Pressure", "GripAngle", "Timestamp", "TestID"), ";")
 
 kable(head(df))
 ```
@@ -329,7 +347,8 @@ In this subsection I explained the process of formating the values, cleaning the
 Since the datas were extracted from a text file, they were all, but the two we added, of class character.
 
 ```{r column classes}
-lapply(df,class)
+#Shows the class of each column in the df data frame
+lapply(df, class)
 ```
 
 It was impossible then to perform any action on those values, so they were all converted as numeric with the `as.numeric` function.
@@ -349,6 +368,7 @@ df <- df %>% mutate(X = as.numeric(X),
 The timestamp columns seemed pretty obscur, and trying to parse it into a readable date would do produce either an impossible date (`make_date` or  `make_datetime`) or NA values (`dym`, `mdy_hms`, `as.Date`,...).
 
 ```{r trying to parse timestamp}
+#The date time functions would not give any satisfying result
 make_date(as.character(df[1,]$Timestamp))
 make_datetime(df[1,]$Timestamp)
 dym(as.character(df[1,]$Timestamp))
@@ -405,7 +425,7 @@ A quick look at the test results (the drawings) showed that the samples were not
 completeDf %>% 
   filter(TestID == 0) %>% 
   ggplot() +
-  geom_point(aes(X,Y, color=patientID), 
+  geom_point(aes(X, Y, color=patientID), 
              show.legend = FALSE) + 
   ggtitle("Different ratios by patient for SST samples")
 ```
@@ -435,8 +455,8 @@ completeDf %>%
             isPwp = first(isPwp)) %>% 
   ggplot() + 
   geom_histogram(aes(maxT, 
-                     fill=isPwp), 
-                 stat="bin")+ 
+                     fill = isPwp), 
+                 stat = "bin")+ 
   ggtitle("Sample times for SST by patient")
 ```
 
@@ -446,15 +466,15 @@ To calibrate the X and Y values, the ratios $\frac{X}{Y}$ were calculated and st
 #Create a dataframe 'ratiosDf' which contains the ratio X/Y (ratio), the height of the sample (H) and isPwp for each couple (patient,test)
 ratiosDf <- df %>% 
   group_by(patientID, TestID) %>% 
-  summarize(ratio=(max(X)-min(X))/(max(Y)-min(Y)), 
-            H= max(Y)-min(Y), 
+  summarize(ratio = (max(X) - min(X)) / (max(Y) - min(Y)), 
+            H = max(Y) - min(Y), 
             isPwp = first(isPwp))
 
 #Plot the ratios by test for SST and DST. It shows the gap between ratios. In the ideal case, every ratio would be of one.
 ratiosDf %>% 
   filter(TestID != 2) %>% 
   ggplot() +
-  geom_bar(aes(ratio, fill=TestID), stat="bin")+ 
+  geom_bar(aes(ratio, fill = TestID), stat = "bin")+ 
   ggtitle("X-Y ratios")
 ```
 We can indeed see that even if most ratios are around 1.3, some outliers are around 2. Even the initial point of the drawing was different (see next plot).
@@ -465,7 +485,7 @@ completeDf %>%
   filter(TestID == 0 & 
            Timestamp == 0) %>% 
   ggplot() + 
-  geom_point(aes(X,Y, color=isPwp))+ 
+  geom_point(aes(X, Y, color = isPwp))+ 
   ggtitle("Starting points for Test 0 samples")
 ```
 
@@ -507,7 +527,7 @@ This model took into account the assumption of which the very first values X,Y w
 #Creating an Archimedean spiral. The choice of the arguments is detailed later (see III-C Defining the Archimedean Spiral)
 #b was calculated manually, t determined (the spiral is three complete turns, which means 3*2pi =6pi)
  b <- 10.61
- t <- seq(0,6*pi, length.out=1100)
+ t <- seq(0, 6*pi, length.out=1100)
  x <- b*t * (cos(t))
  y <- b*t * -(sin(t))
  
@@ -525,10 +545,10 @@ This model took into account the assumption of which the very first values X,Y w
  #Ploting the Archimedean spiral and the points used to calibrate the samples.
  archimedeanSpiral %>%
    ggplot() +
-   geom_path(aes(x,y)) +
+   geom_path(aes(x, y)) +
    geom_point(data = points, 
-              aes(x,y),
-              color="red") +
+              aes(x, y),
+              color = "red") +
    ggtitle("Points used to slide the drawings")
 ```
 
@@ -595,7 +615,7 @@ for(test in seq(0, by=1, length=2)){
 #It is the mean of the first X for healthy patients, for SST and DST.
 Xadjust <- completeCalibratedDf %>% 
   filter(TestID != 2 & 
-           Timestamp==0 & 
+           Timestamp == 0 & 
            isPwp == FALSE) %>% 
   pull(X) %>% 
   mean()
@@ -604,14 +624,14 @@ Xadjust <- completeCalibratedDf %>%
 #It is the mean of the first Y for healthy patients, for SST and DST.
 Yadjust <- completeCalibratedDf %>% 
   filter(TestID != 2 & 
-           Timestamp==0 & 
+           Timestamp == 0 & 
            isPwp == FALSE) %>% 
   pull(Y) %>% 
   mean()
 
 #Archimedean spiral adjusted (slid on X and Y with the previous adjustments parameters)
  b <- 10.61
- t <- seq(0,6*pi, length.out=1100)
+ t <- seq(0, 6*pi, length.out = 1100)
  x <- b*t * (cos(t)) + Xadjust
  y <- b*t * -(sin(t)) + Yadjust
  
@@ -622,11 +642,11 @@ Yadjust <- completeCalibratedDf %>%
 completeCalibratedDf %>% 
   filter(TestID == 0) %>% 
   ggplot() + 
-  geom_point(aes(X,Y, 
+  geom_point(aes(X, Y, 
                  color=patientID), 
              show.legend = FALSE) + 
   ggtitle("Calibrated samples for SST and DST") + 
-  geom_point(data=archimedeanSpiral, aes(x,y), color="red")
+  geom_point(data=archimedeanSpiral, aes(x, y), color="red")
 
 ```
 
@@ -644,9 +664,11 @@ The very first point to stress out was that every patient did not perform the th
 ratiosDf %>% 
   ggplot() + 
   geom_histogram(aes(TestID, 
-                     fill=isPwp),
-                 stat="count")+
-  ggtitle("Tests taken")
+                     fill = isPwp),
+                 stat = "count") +
+  ggtitle("Tests taken") +
+  xlab("Test") +
+  scale_x_discrete(labels = c("0" = "SST", "1" = "DST", "2" = "SOCPT"))
 ```
 
 This would probably alter the accuracy of the future predictions. The original study based its analysis on the combination of SST and DST, and though every patient took the SST (Static Spiral Test), some DST (Dynamic Spiral Test) were missing from the dataset. This issue is detailed and handled on section IV-A Test inconsistency.
@@ -671,7 +693,7 @@ groupedPatientTestDf <- df %>%
 #data frame with healthy controls who took the SOCPT
 subTest2Ctrl <- groupedPatientTestDf %>% 
   filter(TestID == 2 & 
-           isPwp==FALSE) %>% 
+           isPwp == FALSE) %>% 
   ungroup() %>% 
   select(patientID) %>% 
   unique()
@@ -679,14 +701,14 @@ subTest2Ctrl <- groupedPatientTestDf %>%
 #data frame with people with Parkinson's who took the SOCPT
 subTest2Parkinsons  <- groupedPatientTestDf %>% 
   filter(TestID == 2 & 
-           isPwp==TRUE) %>% 
+           isPwp == TRUE) %>% 
   ungroup() %>% 
   select(patientID) %>% 
   unique()
 
 #data frame with healthy controls who did not took the SOCPT
 subControls <- groupedPatientTestDf %>% 
-  filter(isPwp==FALSE & 
+  filter(isPwp == FALSE & 
            !patientID %in% subTest2Ctrl$patientID) %>% 
   ungroup() %>% 
   select(patientID) %>% 
@@ -694,7 +716,7 @@ subControls <- groupedPatientTestDf %>%
 
 #data frame with people with Parkinson's who did not took the SOCPT
 subParkinsons <- groupedPatientTestDf %>% 
-  filter(isPwp==TRUE & 
+  filter(isPwp == TRUE & 
            !patientID %in% subTest2Parkinsons$patientID) %>% 
   ungroup() %>% 
   select(patientID) %>% 
@@ -708,16 +730,16 @@ nrow(subTest2Ctrl) +
 
 #Getting random samples for each sub-data set
 testIndexT2Ctrl <- sample(1:nrow(subTest2Ctrl), 
-                          floor(nrow(subTest2Ctrl)*0.1)+1) 
+                          floor(nrow(subTest2Ctrl) * 0.1) + 1) 
 
 testIndexT2Parkinsons <- sample(1:nrow(subTest2Parkinsons), 
-                                floor(nrow(subTest2Parkinsons)*0.1)+1) 
+                                floor(nrow(subTest2Parkinsons) * 0.1) + 1) 
 
 testIndexCtrl <- sample(1:nrow(subControls), 
                         floor(nrow(subControls)*0.1)+1) 
 
 testIndexParkinsons <- sample(1:nrow(subParkinsons), 
-                              floor(nrow(subParkinsons)*0.1)+1) 
+                              floor(nrow(subParkinsons) * 0.1) + 1) 
 
 #binding the sample patient ids from each sub-data set in a testing data set
 testing_patients <- subTest2Ctrl[testIndexT2Ctrl,]
@@ -806,7 +828,7 @@ patients <- patients %>% mutate(areaT0 = NA,
 #in the testing data set
 Xadjust <- completeCalibratedDf %>% 
   filter(TestID != 2 & 
-           Timestamp==0 & 
+           Timestamp == 0 & 
            patientID %in% trainingSet$patientID &
            isPwp == FALSE) %>% 
   pull(X) %>% 
@@ -818,34 +840,34 @@ Xadjust <- completeCalibratedDf %>%
 #in the testing data set
 Yadjust <- completeCalibratedDf %>% 
   filter(TestID != 2 & 
-           Timestamp==0 & 
+           Timestamp == 0 & 
            patientID %in% trainingSet$patientID &
            isPwp == FALSE) %>% 
   pull(Y) %>% 
   mean()
 
 #The calculus is applied to the first two tests (Static and Dynamic Spiral test)
-for(test in seq(0, by=1, length=2)){
+for(test in seq(0, by = 1, length = 2)){
   
   #For every patient in the data set
-  for(p in seq(1, by=1, length=nrow(patients))){
+  for(p in seq(1, by = 1, length = nrow(patients))){
     
     #Defining current patient
     patient = patients[p,]$patientID
     
     #Select every unique couple X,Y for current patient on current test
     temp_df <- completeCalibratedDf %>% 
-      filter(TestID==test & 
+      filter(TestID == test & 
                patientID == patient) %>% 
       select(X,Y) %>% 
       unique()
     
     #if there are values (= if the patient has taken the test)
-    if(nrow(temp_df)>0){
+    if(nrow(temp_df) > 0){
       
        #construct the archimedeanSpiral
        b <- 10.61
-       t <- seq(0,6*pi, length.out=nrow(temp_df))
+       t <- seq(0,6*pi, length.out = nrow(temp_df))
        x <- b*t * (cos(t)) + Xadjust
        y <- b*t * -(sin(t)) + Yadjust
        
@@ -854,38 +876,51 @@ for(test in seq(0, by=1, length=2)){
        
        #add row number for further left_join
        archimedeanSpiral <- archimedeanSpiral %>% 
-         mutate(nr=row_number())
+         mutate(nr = row_number())
       
       #Convert data frames in spatial points (rgeos package) 
       temp_df_sp <- SpatialPoints(temp_df)
       sp <- SpatialPoints(archimedeanSpiral)
       
-      #calculate minimum distance between the drawing and the spiral
-      temp_df$nr <- apply(gDistance(temp_df_sp, sp, byid=TRUE), 1, which.min)
+      #determine nearest points on the Archimedean spiral
+      temp_df$nr <- apply(gDistance(temp_df_sp, sp, byid = TRUE), 1, which.min)
       
-      temp_df <- left_join(temp_df, archimedeanSpiral, by="nr")
+      #join tables to get the coordinates of the nearest points
+      temp_df <- left_join(temp_df, archimedeanSpiral, by = "nr")
       
-      temp_df <- temp_df %>% mutate(dist = sqrt((X-x)^2+(Y-y)^2)) %>% select(X,Y,dist)
+      #calculate distance between each point of the sample and it's nearest neighbour on the Archimedean spiral
+      temp_df <- temp_df %>% mutate(dist = sqrt((X - x)^2 + (Y - y)^2)) %>% select(X, Y, dist)
       
+      #sum all the distances to approximate the area
       patients[p,][paste0("areaT", test)] <- sum(temp_df$dist)
-      patients[p,][paste0("sdT",test)] <- sd(temp_df$dist)
+      
+      #get the standard deviation
+      patients[p,][paste0("sdT", test)] <- sd(temp_df$dist)
     }
   
   }
 }
+
+#plot the results (area difference and sd)
 plotComparingTestsWithArchimedeanSpiral <- patients %>% ggplot()
 
 plotT0Archi <- plotComparingTestsWithArchimedeanSpiral + 
-  geom_histogram(aes(areaT0, fill=isPwp, color=patientID), stat="bin") 
+  geom_histogram(aes(areaT0, 
+                     fill = isPwp, 
+                     color = patientID), stat = "bin") +
+  xlab("Area difference (SST, Archimedean spiral)")
 
 plotT1Archi <- plotComparingTestsWithArchimedeanSpiral + 
-  geom_histogram(aes(areaT1, fill=isPwp, color=patientID), stat="bin") 
+  geom_histogram(aes(areaT1, fill=isPwp, color=patientID), stat="bin") +
+  xlab("Area difference (DST, Archimedean spiral)")
 
 plotSdT0Archi <- plotComparingTestsWithArchimedeanSpiral + 
-  geom_histogram(aes(sdT0, fill=isPwp, color=patientID), stat="bin") 
+  geom_histogram(aes(sdT0, fill=isPwp, color=patientID), stat="bin") +
+  xlab("Standard deviation (SST, Archimedean spiral)")
 
 plotSdT1Archi <- plotComparingTestsWithArchimedeanSpiral + 
-  geom_histogram(aes(sdT1, fill=isPwp, color=patientID), stat="bin") 
+  geom_histogram(aes(sdT1, fill=isPwp, color=patientID), stat="bin") +
+  xlab("Standard deviation (DST, Archimedean spiral)")
 
 ggarrange(plotT0Archi, 
           plotT1Archi, 
@@ -911,43 +946,43 @@ $$\Delta = t_{DSTmax} - t_{SSTmax}$$
 patients <- patients %>% mutate(areaT0_T1 = NA, sdT0_T1 = NA)
 
   #For every patient in the data set
-  for(p in seq(1, by=1, length=nrow(patients))){
+  for(p in seq(1, by = 1, length = nrow(patients))){
     
     #Defining current patient
     patient = patients[p,]$patientID
     
     #Select every unique couple X,Y for current patient on test 0
     temp_df0 <- completeCalibratedDf %>% 
-      filter(TestID==0 & 
+      filter(TestID == 0 & 
                patientID == patient) %>% 
-      select(X,Y) %>% 
+      select(X, Y) %>% 
       unique() %>% 
-      mutate(nr=row_number())
+      mutate(nr = row_number())
     
     #Select every unique couple X,Y for current patient on test 1
     temp_df1 <- completeCalibratedDf %>% 
-      filter(TestID==1 & 
+      filter(TestID == 1 & 
                patientID == patient) %>% 
-      select(X,Y) %>% 
+      select(X, Y) %>% 
       unique() %>% 
-      mutate(nr=row_number())
+      mutate(nr = row_number())
     
     #if there are values (= if the patient has taken the test)
-    if(nrow(temp_df0)>0 & nrow(temp_df1)>0){
+    if(nrow(temp_df0) > 0 & nrow(temp_df1) > 0){
       
       #Convert data frames in spatial points (rgeos package) 
       temp_df0_sp <- SpatialPoints(temp_df0)
       temp_df1_sp <- SpatialPoints(temp_df1)
 
-        temp_df1$nr <- apply(gDistance(temp_df0_sp, temp_df1_sp, byid=TRUE), 1, which.min)
+        temp_df1$nr <- apply(gDistance(temp_df0_sp, temp_df1_sp, byid = TRUE), 1, which.min)
         
-        temp_df <- inner_join(temp_df1, temp_df0, by="nr")
+        temp_df <- inner_join(temp_df1, temp_df0, by = "nr")
       
       
       
       temp_df <- temp_df %>% 
-        mutate(dist = sqrt((X.x-X.y)^2+(Y.x-Y.y)^2)) %>% 
-        select(X.x,Y.y,dist)
+        mutate(dist = sqrt((X.x - X.y)^2 + (Y.x - Y.y)^2)) %>% 
+        select(X.x, Y.y, dist)
       
       patients[p,]$areaT0_T1 <- sum(temp_df$dist)
       patients[p,]$sdT0_T1 <- sd(temp_df$dist)
@@ -968,28 +1003,40 @@ times1 <- completeCalibratedDf %>%
   group_by(patientID) %>% 
   summarize(time1 = max(Timestamp))
 
-times <- left_join(times0, times1, by="patientID")
+times <- left_join(times0, times1, by = "patientID")
 
 times <- times %>% 
   mutate(difft1_t0 = time1 - time0) %>% 
   select(difft1_t0, patientID)
 
-patients <- left_join(patients, times, by="patientID")
+patients <- left_join(patients, times, by = "patientID")
 
 plotT0_T1 <- patients %>% ggplot() 
 
 plotAreaT0_T1 <- plotT0_T1 + 
-  geom_histogram(aes(areaT0_T1, fill=isPwp, color=patientID), stat="bin") 
+  geom_histogram(aes(areaT0_T1, 
+                     fill = isPwp, 
+                     color = patientID), 
+                 stat = "bin") +
+  xlab("Area difference (SST, DST)")
 
 plotSdT0_T1 <- plotT0_T1 + 
-  geom_histogram(aes(sdT0_T1, fill=isPwp, color=patientID), stat="bin")
+  geom_histogram(aes(sdT0_T1, 
+                     fill = isPwp, 
+                     color = patientID), 
+                 stat = "bin") +
+  xlab("Standard deviation (SST, DST)")
 
 plotDiffTimesT0_T1 <- plotT0_T1 + 
-  geom_histogram(aes(difft1_t0, fill=isPwp, color=patientID), stat="bin")
+  geom_histogram(aes(difft1_t0, 
+                     fill = isPwp, 
+                     color = patientID), 
+                 stat = "bin") +
+  xlab("Time difference (SST, DST)")
 
 ggarrange(plotAreaT0_T1,
           plotSdT0_T1, 
-          plotDiffTimesT0_T1, ncol=2, nrow=2, common.legend = TRUE)
+          plotDiffTimesT0_T1, ncol = 2, nrow = 2, common.legend = TRUE)
 
 ```
 
@@ -1006,21 +1053,21 @@ $$D = \sum_i{d_i}$$
 ```{r computing values for Test2, echo=FALSE, warning=FALSE}
 patients <- patients %>% mutate(Z0_T2 = NA, DistT2 = NA)
 
- for(index in seq(1, by=1, length=nrow(patients))){
+ for(index in seq(1, by = 1, length = nrow(patients))){
       
       id <- patients[index,]$patientID
       
       temp <- completeDf %>% 
         filter(patientID == id & TestID == 2) %>%
-        arrange(Timestamp) %>% select(X,Y,Z)
+        arrange(Timestamp) %>% select(X, Y, Z)
       
       if(nrow(temp)>0){
         
         patients[index,]$Z0_T2 <- nrow(temp %>% filter(Z == 0))
         
-        temp <- temp %>% select(X,Y) %>% unique()
+        temp <- temp %>% select(X, Y) %>% unique()
         dist <-0
-        for(row in seq(2, by=1, length= nrow(temp)-1)){
+        for(row in seq(2, by = 1, length = nrow(temp) - 1)){
           dist <- dist + sqrt((temp[row,]$X - temp[row-1,]$X)^2+(temp[row,]$Y - temp[row-1,]$Y)^2)
         }
         patients[index,]$DistT2 <- dist
@@ -1037,7 +1084,7 @@ The very first issue was that every patient did not take the three tests. I need
 
 ```{r analysing different cases}
 couplesTestsPatients <- df %>% 
-  select(patientID,TestID) %>% 
+  select(patientID, TestID) %>% 
   group_by(patientID, TestID) %>% unique()
 
 PatientsT0 <- couplesTestsPatients %>% 
@@ -1099,7 +1146,8 @@ PatientsT2 %>%
 #but neither the SST nor the DST?
 PatientsT2 %>% 
   filter(!patientID %in% PatientsT0$patientID & 
-           !patientID %in% PatientsT1$patientID) %>% nrow() > 0
+           !patientID %in% PatientsT1$patientID) %>% 
+  nrow() > 0
 ```
 
 Thoses four different cases were, patients who :
@@ -1146,9 +1194,9 @@ In order to use all the parameters calculated and computed, I needed to merge th
 
 ```{r completing training and testing sets}
 trainingSet <- left_join(trainingSet, patients %>% 
-                           select(-isPwp), by="patientID")
+                           select(-isPwp), by = "patientID")
 testingSet <- left_join(testingSet, patients %>% 
-                          select(-isPwp), by="patientID")
+                          select(-isPwp), by = "patientID")
 ```
 
 ### Parameters
@@ -1178,7 +1226,7 @@ It was time to define the six fitting models and compute the different predictio
 fit_SST_DST <- randomForest(isPwp ~ areaT0_T1 + 
                               sdT0_T1 + 
                               difft1_t0,
-                               data=trainingSet, 
+                               data = trainingSet, 
                             na.action = na.omit)
 
 yhat_SST_DST <- predict(fit_SST_DST, 
@@ -1189,7 +1237,7 @@ yhat_SST_DST <- predict(fit_SST_DST,
 #random forest
 fit_SOCPT <- randomForest(isPwp ~ Z0_T2 + 
                             DistT2, 
-                             data=trainingSet, 
+                             data = trainingSet, 
                           na.action=na.omit)
 
 yhat_SOCPT <- predict(fit_SOCPT, 
@@ -1204,8 +1252,8 @@ p_hat <- yhatDf %>%
   rowwise() %>% 
   mutate(phat = weighted.mean(c(yhat_SST_DST,
                                 yhat_SOCPT), 
-                              c(1,4), 
-                              na.rm=TRUE)) %>% 
+                              c(1, 4), 
+                              na.rm = TRUE)) %>% 
   select(phat)
 ```
 
@@ -1213,10 +1261,11 @@ p_hat <- yhatDf %>%
 
 The accuracy we got with this model was of one, the perfect accuracy. There was no need to improve the algorithm more. But, it should be treated cautiously. Since we do not have much data in the dataset, we have no certainty about the accuracy for the people with the disease at it's very first stage. It is also complicated to apprehend since we do not have access to the medical "score" for each patient, instead we have a binary result, healthy, or with Parkinson's. In the ideal scenario, we would have had access to a scale, with the "progress" of the disease (which stage at least).
 ```{r results}
-Yhat <- ifelse(p_hat >0.5, 1, 0) %>% 
+Yhat <- ifelse(p_hat > 0.5, 1, 0) %>% 
   factor()
 
-Yhat
+results <- cbind(p_hat, Yhat, testingSet$isPwp)
+results
 
 confusionMatrix(Yhat, 
                 testingSet$isPwp %>% 
