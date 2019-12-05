@@ -6,6 +6,11 @@ documentclass: "article"
 output: 
   pdf_document:
     number_sections: true
+    df_print : kable
+indent : true
+fig_caption : true
+urlcolor : red
+linkcolor: blue
 ---
 
 \renewcommand\thesubsection{\Roman{subsection}}
@@ -30,12 +35,13 @@ if(!require(sp)) install.packages("sp", repos = "http://cran.us.r-project.org")
 if(!require(rgeos)) install.packages("rgeos", repos = "http://cran.us.r-project.org")
 if(!require(randomForest)) install.packages("randomForest", repos = "http://cran.us.r-project.org")
 if(!require(knitr)) install.packages("knitr", repos = "http://cran.us.r-project.org")
+if(!require(ggthemes)) install.packages("ggthemes", repos = "http://cran.us.r-project.org")
 ```
 
 
 # Introduction
 
-This report presented the analysis and results of the "Choose Your Own Project" from the HarvardX's ninth course of the Data Science Professional Certificate Program available on edx.org. The chosen thematic was the prediction of the Parkinson's disease diagnosis depending on the results of three tests, measuring the motor performance, the tremor and the hand stability.
+This report presents the analysis and results of the "Choose Your Own Project" from the HarvardX's ninth course of the Data Science Professional Certificate Program available on edx.org. The chosen thematic was the prediction of the Parkinson's disease diagnosis depending on the results of three tests, measuring the motor performance, the tremor and the hand stability.
 
 ## Nota bene
 
@@ -45,24 +51,26 @@ When not relevant, the code used to create this report is run but not displayed.
 
 ## Parkinson's disease
 
-Parkinson's disease, sometimes abreviated to PD, is a long-term neurodegenerative disorder. Its cause is unknown, though it is believed to involve genetic (as relatives tend to contract the disease), and/or environmental factors (as pesticides). 
+Parkinson's disease, sometimes abreviated as PD, is a long-term neurodegenerative disorder. Its cause is unknown, though it is believed to involve genetic (as relatives tend to contract the disease), and/or environmental factors (as pesticides). 
 
-The disease affects mostly the motor system, as tremor, akinesia (loss of the power of voluntary movement), shaking, rigidity, slowness of movement, difficulty with walking,... and as it worsen it can cause depression, anxiety (more than a third of people with Parkinson's disease), emotional and sleep troubles, and in the advanced stages the disease can lead to dementia.
+The disease affects mostly the motor system, as tremor, akinesia (loss of the power of voluntary movement), shaking, rigidity, slowness of movement, difficulty with walking,... and as it worsen, it can cause depression, anxiety (more than a third of people with Parkinson's disease), emotional and sleep troubles, and in the advanced stages the disease can lead to dementia.
 
-The motor symptoms of the Parkinson's disease (parkinsonian syndrome) are caused by the death of cells, more precisely dopaminergic neurons, in the *substantia nigra* (a region of the midbrain, see Figure 1, left). The *substantia nigra* is a structure divided into to parts : the *pars reticula* and the *pars compacta* (see Figure 1, left). It is the part of the brain that plays an important role in reward-seeking, learning and movement. 
+The motor symptoms of the Parkinson's disease (parkinsonian syndrome) are caused by the death of cells, more precisely dopaminergic neurons, in the *substantia nigra* (a region of the midbrain, see Figure \ref{fig:figs}, left). The *substantia nigra* is a structure divided into to parts : the *pars reticula* and the *pars compacta* (see Figure \ref{fig:figs}, left). It is the part of the brain that plays an important role in reward-seeking, learning and movement. 
 
 Dopamine is an organic chemical functioning as both an hormone and a neurotransmitter. Basically, neurotransmitters are chemical messengers which transmit signals by being released from one neuron to a receptor on the target cells. Neurotransmitters are critical to execute everyday functions as, in our case, movement (contact between a motor neuron  and a muscle fiber).
 
-The lack of dopamine (due to the death of those cells, and therefore induces a smaller substancia nigra than on a healthy subject, see Figure 1, right) provokes emotional troubles, and since the downsized *substancia nigra* is connected to the motor cortex (via the *pars reticula*, see Figure 1, left), it causes the parkisonian syndromes.
+The lack of dopamine (due to the death of those cells, and therefore induces a smaller substancia nigra than on a healthy subject, see Figure \ref{fig:figs}, right) provokes emotional troubles, and since the downsized *substancia nigra* is connected to the motor cortex (via the *pars reticula*, see Figure \ref{fig:figs}, left), it causes the parkisonian syndromes.
 
-The Figure 1 (left) shows a lateral cross-section of a brain. The red arrows represent the dopamine's exchanges between the *pars reticula*. The Figure 1 (right) shows the lack of dopaminergic neurons in a brain of a person affected by Parkinson's disease compared to a healthy brain.
+The Figure \ref{fig:figs} (left) shows a lateral cross-section of a brain. The red arrows represent the dopamine's exchanges between the *pars reticula*. 
 
-```{r, echo=FALSE,out.width="49%", out.height="20%",fig.cap="Lateral cross-section of the brain (left, source : http://www.neuroconvention.com/), *Substancia nigra* differences between a healthy brain and a Parkinson's brain (right, source : https://scienceofparkinsons.com/) ",fig.show='hold',fig.align='center'}
+The Figure \ref{fig:figs} (right) shows the lack of dopaminergic neurons in a brain of a person affected by Parkinson's disease compared to a healthy brain.
+
+```{r, echo=FALSE,out.width="49%", out.height="20%",fig.cap="\\label{fig:figs}Lateral cross-section of the brain (left, source : http://www.neuroconvention.com/), *Substancia nigra* differences between a healthy brain and a Parkinson's brain (right, source : https://scienceofparkinsons.com/) ",fig.show='hold',fig.align='center'}
 knitr::include_graphics(c("img/brain_pd.jpg","img/sn.jpg"))
 ``` 
 
 
-Parkinson's disease affected 6.2 million people in 2015 and resulted in more than 117,000 deaths. This condition mostly occurs in people over the age of 60 (about one percent are affected). The average life expectancy following diagnosis is between 7 and 15 years.
+Parkinson's disease affected around 6.2 million people in 2015 and resulted in more than 117,000 deaths. This condition mostly occurs in people over the age of 60 (about one percent are affected). The average life expectancy following diagnosis is between 7 and 15 years.
 
 ## Project overview
 
@@ -98,7 +106,7 @@ $$ x = (a + bt) * cos(t)$$
 $$ y = (a +  bt) * sin(t)$$
 
 
-```{r archimedean spiral, echo=FALSE, fig.align="center", fig.cap="Archimedean spirals"}
+```{r archimedean spiral, echo=FALSE, fig.align="center", fig.cap="\\label{fig:figs3}Archimedean spirals"}
 #Here we build two Archimedean spirals. The equations are : x(t)= (a+bt)cos(t) and y(t)= (a+bt)sin(t)
 #Archimedean spiral similar to the one used in the tests. a=0, b=10.61, and it does 3 turns (6pi). This spiral is to be plot on the left of the figure.
 archSpiral6pi.b <- 10.61
@@ -112,7 +120,8 @@ plot1 <- ggplot() +
   xlab("x")+
   ylab("y")+
   ggtitle("Length 6pi") +
-  coord_fixed(ratio = 1)
+  coord_fixed(ratio = 1) +
+  theme_solarized()
  
 #Archimedean spiral used to show the parameters a (=20), b (=30), t (length=pi/3)
 archSpiralpi_3.a <- 20
@@ -151,7 +160,7 @@ plot2 <- ggplot() +
            col = "#FFA434", 
            size = 1.5)+
 geom_text(aes(5, 10),
-          label = "a*t", 
+          label = "a", 
           col = "#FFA434")+
  
 #b when t=pi/4
@@ -185,21 +194,34 @@ geom_curve(aes(x = 7,
             col = "#2F86E0") +
  
  coord_fixed(ratio = 1) +
- ggtitle("Length pi/3")
+ ggtitle("Length pi/3") +
+  theme_solarized()
 
 ggarrange(plot1, plot2, align="v", common.legend = TRUE, legend = "bottom")
 
 ```
+The Figure \ref{fig:figs} (left), shows an Archimedean spiral similar to the one used in the SST and DST. Here, $a=0$, $b=10.61$, and the length is $6\pi$ ($t$ ranges from $0$ to $6\pi$). This means that the spiral does three complete turns.
+
+The Figure \ref{fig:figs} (right), shows an Archimedean spiral with a length of only $\frac{\pi}{3}$, to show the different parameters. Here, $a=20$ and $b=30$, and we have the following equations :
+$$\left\{
+    \begin{array}{l}
+      x_b(t)= bt*cos(t)\\
+      y_b(t)= bt*sin(t)\\
+      b(t) =\sqrt{x_b(t)² + y_b(t)²} = \sqrt{(bt*cos(t))²+(bt*sin(t))²} = \sqrt{b²t²(cos²(t)+sin²(t))}=\sqrt{b²t²}=bt\\
+      b(t=0) = b*t=0
+    \end{array}
+  \right.$$
+
 
 ### Goal 
 
-In this report I will try to build an algorithm able to predict if the patient has or has not Parkinson's disease based on this dataset. I do not have access to the software used in the study, so I will have to recreate and approximate the Archimedean spiral. I do not have access to the *scores* of the patients, given by neurologists, representing the stage of Parkinson's disease. Therefore, my output will only be a boolean, has, or has not, with at best a percentage of probability, not a neurological scale. If efficient, these results would help determine if a person taking the test should consult a specialist for further examination. The original study based its conclusion of the acceleration (change of velocity) for the firsts two tests (static and dynamic spiral tests). I will try instead to use the areas and lengths of each drawing, as well as the difference of time needed to perform the two firsts tests.  
+In this report I will build an algorithm able to predict if the patient has or has not Parkinson's disease based on this dataset. I do not have access to the software used in the study, so I will have to recreate and approximate the Archimedean spiral. I do not have access to the *scores* of the patients, given by neurologists, representing the stage of Parkinson's disease. Therefore, my output will only be a boolean, has, or has not, with at best a percentage of probability, not a neurological scale. If efficient, these results would help determine if a person taking the test should consult a specialist for further examination. The original study based its conclusion of the acceleration (change of velocity) for the firsts two tests (static and dynamic spiral tests). I will try instead to use the areas and lengths of each drawing, as well as the difference of time needed to perform the two firsts tests.  
 
 ## Dataset overview
 
 The dataset provided was an archive .zip containing three folders. One of them was composed by only .png images of the tests results, which were already saved in the text dataset. In the two remaining folders, there were datasets related to healthy (called controls) and people with Parkinson's disease (called PWP, People With Parkinson). Since the datasets in both folders were following the same pattern, they were merged in a single one.
 
-Each text file of the dataset was the test results of a single patient. Each line of the file represented one measure, at a certain time, of the X-Y-Z coordinates of the digital pen, the pressure of the pen on the screen, the grip angle, the timestamp (at which the measure had been taken) and the test identifier (Static Spiral Test : 0, Dynamic Spiral Test : 1, Stability Test on Certain Point :2).
+Each text file of the dataset was the test results of a single patient. Each line of the file represented one measure, at a certain time, of the X-Y-Z coordinates of the digital pen, the pressure of the pen on the screen, the grip angle, the timestamp (at which the measure had been taken) and the test identifier (Static Spiral Test : 0, Dynamic Spiral Test : 1, Stability Test on Certain Point Test :2).
 
 ```{r extracting datas and building data frame, include=FALSE}
 #Function to extract the dataframe from either the data in the repository (local, from GitHub) or from the UCI website
@@ -305,6 +327,7 @@ In this section I described the process, from analysing the original dataset, to
 ## Initial Data
 
 Once the data downloaded and the data frame built (see previous section), the first step was to add a random identifier to each patient and to note if he has Parkinson's disease or not. The random identifier had been chosen because :
+
 * since the text files were from different folders, and as some files had the same numbers, no pattern could be used for identifiers.
 * it allowed to not get focused on the patient id.
 
@@ -365,7 +388,7 @@ df <- df %>% mutate(X = as.numeric(X),
 
 ### Cleaning TimeStamp
 
-The timestamp columns seemed pretty obscur, and trying to parse it into a readable date would do produce either an impossible date (`make_date` or  `make_datetime`) or NA values (`dym`, `mdy_hms`, `as.Date`,...).
+The timestamp columns seemed pretty obscur, and trying to parse it into a readable date would produce either an impossible date (`make_date` or  `make_datetime`) or NA values (`dym`, `mdy_hms`, `as.Date`,...).
 
 ```{r trying to parse timestamp}
 #The date time functions would not give any satisfying result
@@ -418,35 +441,40 @@ With this modification, it was easier to compare the timestamps between patients
 
 ### Calibrating the samples
 
-A quick look at the test results (the drawings) showed that the samples were not all consistent in term of X-Y ratio (see Plot). Seven samples can be seen with a X-Y ratio of almost 2 instead of 1. With the Archimead spiral formula in mind, it seemed odd that a small part of the patients would have been given a different test with a different drawing to follow. 
+A quick look at the test results (the drawings) showed that the samples were not all consistent in term of X-Y ratio (see Plot \ref{fig:figs4}). Seven samples can be seen with a X-Y ratio of almost 2 instead of 1. With the Archimean spiral formula in mind, it seemed odd that a small part of the patients would have been given a different test with a different drawing to follow. 
 
-```{r ploting X-Y for Test0, echo=FALSE}
+```{r ploting X-Y for SST, fig.cap="\\label{fig:figs4}SST and DST samples", echo=FALSE}
 #Ploting the samples for the SST by patient. It shows the different ratios in the records.
 completeDf %>% 
-  filter(TestID == 0) %>% 
+  filter(TestID != 2) %>%
   ggplot() +
-  geom_point(aes(X, Y, color=patientID), 
+  geom_point(aes(X, Y, color = patientID),
+             size = 0.75,
              show.legend = FALSE) + 
-  ggtitle("Different ratios by patient for SST samples")
+  ggtitle("Different ratios by patient for SST and DST samples") +
+  facet_grid(. ~ TestID) +
+  theme_solarized()
 ```
 
-Another odd detail was a spacial gap between patterns with the same ratio (see Plot). One of the control sample seemed to have been shifted.
+Another odd detail was a spacial gap between patterns with the same ratio (see Plot \ref{fig:figs5}). One of the control sample seemed to have been shifted.
 
-```{r ploting X-Y for Test0 and controls, echo=FALSE}
+```{r ploting X-Y for Test0 and controls, fig.cap="\\label{fig:figs5}SST samples (controls)", echo=FALSE}
 #Ploting the samples for healthy controls on the SST, by patient. It shows the spatial shift between the samples
 completeDf %>% 
   filter(TestID == 0 & 
            isPwp == FALSE) %>% 
   ggplot() + 
-  geom_point(aes(X,Y, 
-                 color=patientID), 
+  geom_point(aes(X, Y, 
+                 color = patientID),
+             size=0.75,
              show.legend = FALSE) + 
-  ggtitle("Spatial gap for SST samples")
+  ggtitle("Spatial gap for SST samples") +
+  theme_solarized()
 ```
 
-This disparity between the samples prevented me from trying to analyse the spacial differences between the generated Archimedean spiral and the patient's drawing. I checked if the timestamp data seemed affected or not (see Plot). It seemed as only the X and Y values were sometimes off.
+This disparity between the samples prevented me from trying to analyse the spacial differences between the generated Archimedean spiral and the patient's drawing. I checked if the timestamp data seemed affected or not (see Plot \ref{fig:figs6}). It seemed as only the X and Y values were sometimes off.
 
-```{r checking timestamps, echo=FALSE, message=FALSE, warning=FALSE}
+```{r checking timestamps, fig.cap="\\label{fig:figs6}SST sample times", echo=FALSE, message=FALSE, warning=FALSE}
 #Ploting (bar plot) the time needed by each patient to complete the SST. It shows that the timestamps do not seem to be affected by the material. 
 completeDf %>% 
   filter(TestID == 0) %>% 
@@ -456,8 +484,10 @@ completeDf %>%
   ggplot() + 
   geom_histogram(aes(maxT, 
                      fill = isPwp), 
-                 stat = "bin")+ 
-  ggtitle("Sample times for SST by patient")
+                 stat = "bin") + 
+  xlab("Time needed to complete the SST (by patient)") +
+  ggtitle("Sample times for SST by patient")+
+  theme_solarized()
 ```
 
 To calibrate the X and Y values, the ratios $\frac{X}{Y}$ were calculated and stored in a new data frame *ratiosDf*, by patient and test. This data frame contained the ratio between X and Y as $$ratio=\frac{X_{max} - X_{min}}{Y_{max}-Y_{min}}$$
@@ -469,24 +499,29 @@ ratiosDf <- df %>%
   summarize(ratio = (max(X) - min(X)) / (max(Y) - min(Y)), 
             H = max(Y) - min(Y), 
             isPwp = first(isPwp))
+```
 
+```{r ploting ratios, fig.cap="\\label{fig:figs7}X-Y ratios before cleaning", echo=FALSE, message=FALSE, warning=FALSE}
 #Plot the ratios by test for SST and DST. It shows the gap between ratios. In the ideal case, every ratio would be of one.
 ratiosDf %>% 
   filter(TestID != 2) %>% 
   ggplot() +
-  geom_bar(aes(ratio, fill = TestID), stat = "bin")+ 
-  ggtitle("X-Y ratios")
+  geom_bar(aes(ratio, fill = TestID), stat = "bin") + 
+  scale_fill_discrete(name = "Test", labels=c("SST", "DST")) +
+  ggtitle("X-Y ratios") +
+  theme_solarized()
 ```
-We can indeed see that even if most ratios are around 1.3, some outliers are around 2. Even the initial point of the drawing was different (see next plot).
+We can indeed see that even if most ratios are around 1.3, some outliers are around 2 (see Figure \ref{fig:figs7}). Even the initial point of the drawing was different (see Figure \ref{fig:figs8}).
 
-```{r starts of drawings for test 0, echo=FALSE}
+```{r starts of drawings for SST, fig.cap="\\label{fig:figs8}SST starting point", echo=FALSE}
 #Ploting the first point of each sample (by isPwp) for the SST. It shows the spatial gap between the samples. In the ideal case, they would all be similar.
 completeDf %>% 
   filter(TestID == 0 & 
            Timestamp == 0) %>% 
   ggplot() + 
   geom_point(aes(X, Y, color = isPwp))+ 
-  ggtitle("Starting points for Test 0 samples")
+  ggtitle("Starting points for SST samples") + 
+  theme_solarized()
 ```
 
 To standardize all the spirals, several parameters were taken into account :
@@ -505,7 +540,7 @@ Resizing the height and length of the spiral would be done with : $$X_{resized_i
 
 In order to replace the spirals near the origin of the graph ($X=0$ and $Y=0$), two adjustment parameters need to be determined. The formula would simply be $X_{slid_i}=X_{old_i}-X_{param}$ and $Y_{slid_i}=Y_{old_i}-Y_{param}$.
 
-Several methods were tried for determining the best $X_{param}$ and $Y_{param}$ such as :
+Several methods were tried for determining the best $X_{param}$ and $Y_{param}$ such as:
 
 * $X_{param} = X_{mean}$ and $Y_{param} = Y_{mean}$
 * $X_{param} = X_{median}$ and $Y_{param} = Y_{median}$
@@ -521,9 +556,9 @@ $$X_{param} = \frac{(X_{initial} + X_{min} + X_{max})}{3}$$
 
 $$Y_{param} = \frac{(Y_{initial} + Y_{min} + Y_{max})}{3}$$
 
-This model took into account the assumption of which the very first values X,Y were, in general, the closest to the Archimedean Spiral when $Timestamp = 0$. $X_{min}$ and $X_{max}$ (and respectively $Y_{min}$ and $Y_{max}$) were approximations of the very tip of the drawings (see plot).
+This model took into account the assumption of which the very first values X,Y were, in general, the closest to the Archimedean Spiral when $Timestamp = 0$. $X_{min}$ and $X_{max}$ (and respectively $Y_{min}$ and $Y_{max}$) were approximations of the very tip of the drawings (see Figure \ref{fig:figs9}).
 
-```{r modeling the Spiral and X-Y params, echo=FALSE}
+```{r modeling the Spiral and X-Y params, fig.cap="\\label{fig:figs9}Archimedean spiral", echo=FALSE}
 #Creating an Archimedean spiral. The choice of the arguments is detailed later (see III-C Defining the Archimedean Spiral)
 #b was calculated manually, t determined (the spiral is three complete turns, which means 3*2pi =6pi)
  b <- 10.61
@@ -532,7 +567,7 @@ This model took into account the assumption of which the very first values X,Y w
  y <- b*t * -(sin(t))
  
  #data frame containing the values (x,y) of the Archimedean spiral
- archimedeanSpiral = data.frame(x,y)
+ archimedeanSpiral = data.frame(x, y)
  
  #determined the points used to calibrate the samples. X min, max and first value, Y min and max
  points <- archimedeanSpiral %>% 
@@ -549,25 +584,26 @@ This model took into account the assumption of which the very first values X,Y w
    geom_point(data = points, 
               aes(x, y),
               color = "red") +
-   ggtitle("Points used to slide the drawings")
+   ggtitle("Points used to slide the drawings") +
+   theme_solarized()
 ```
 
-Combining those three models gave for patient $p$, test $t$ and spiral length $L$ equal spiral height:
+Combining those three models gave for patient $p$, test $t$ and spiral length $L$ equal spiral height (see Figure \ref{fig:figs10}:
 
 $$X_{i,p,t} = \frac{\frac{X_{old_i} - X_{param}}{ratio_{p,t}}}{L_{p,t}}*400 = \frac{(X_{old_i} - X_{param})*400}{ratio_{p,t}*L_{p,t}} = 400\frac{(X_{old_i} - \frac{X_{initial} + X_{min} + X_{max}}{3})}{ratio_{p,t}*L_{p,t}} $$
 
 $$Y_{i,p,t} = \frac{Y_{old_i} - Y_{param}}{L_{p,t}}*400 = 400\frac{(Y_{old_i} - \frac{Y_{initial} + Y_{min} + Y_{max}}{3})}{L_{p,t}}$$
 
-```{r calibrating X and Y, echo=FALSE}
+```{r calibrating X and Y, fig.cap="\\label{fig:figs10}Calibrated SST and DST samples", echo=FALSE}
 
 #new data frame to contain the calibrated X and Y values
 completeCalibratedDf <- data.frame()
 
 #for each test
-for(test in seq(0, by=1, length=2)){
+for(test in seq(0, by = 1, length = 2)){
   
   #for each patient
-  for(indPatient in seq(1, by=1, length=nrow(patients))){
+  for(indPatient in seq(1, by = 1, length = nrow(patients))){
     
     #get the ratio for current patient and current test
     ratioLines <- ratiosDf %>% 
@@ -575,7 +611,7 @@ for(test in seq(0, by=1, length=2)){
                                         TestID == test)
     
     #if the patient as taken the test (= there are values in the ratio data frame)  
-    if(nrow(ratioLines) >=1){
+    if(nrow(ratioLines) >= 1){
       
       #get the ratio for current patient and current test
       ratio <- ratioLines[1,]$ratio
@@ -586,7 +622,7 @@ for(test in seq(0, by=1, length=2)){
       #get temporary data frame for current patient and current test, arranged by timestamp
       temp_df <- completeDf %>% 
         filter(TestID == test & 
-                 patientID==patients[indPatient,]$patientID) %>% 
+                 patientID == patients[indPatient,]$patientID) %>% 
         arrange(Timestamp)
       
       #Calculate the X slid parameter
@@ -595,14 +631,14 @@ for(test in seq(0, by=1, length=2)){
                max(temp_df$X))/3
       
       #Calculate the Y slid parameter
-      pY <- (temp_df[which.min(temp_df$Timestamp),]$Y+ 
+      pY <- (temp_df[which.min(temp_df$Timestamp),]$Y + 
                min(temp_df$Y) + 
-               max(temp_df$Y))/3
+               max(temp_df$Y)) /3
       
       #mutate X and Y with 
       temp_df <- temp_df %>%
-        mutate(X = ((X - pX)/(ratio*H))*400, 
-               Y = (Y - pY)/H*400)
+        mutate(X = ((X - pX) / (ratio*H)) * 400, 
+               Y = (Y - pY) / H*400)
 
       #binding the already calibrated values to the ones just calibrated
       completeCalibratedDf <- rbind(completeCalibratedDf, temp_df)
@@ -636,17 +672,20 @@ Yadjust <- completeCalibratedDf %>%
  y <- b*t * -(sin(t)) + Yadjust
  
  #dataframe containing the X,Y values of the Archimedean spiral
- archimedeanSpiral = data.frame(x,y)
+ archimedeanSpiral = data.frame(x, y)
 
  #Ploting the calibrated samples and the slid Archimedean spiral to show the improvement in the samples. They are now more consistent.
 completeCalibratedDf %>% 
   filter(TestID == 0) %>% 
   ggplot() + 
   geom_point(aes(X, Y, 
-                 color=patientID), 
+                 color = patientID),
+             size = 0.5,
              show.legend = FALSE) + 
+  facet_grid(. ~ TestID) +
   ggtitle("Calibrated samples for SST and DST") + 
-  geom_point(data=archimedeanSpiral, aes(x, y), color="red")
+  geom_point(data = archimedeanSpiral, aes(x, y), color = "red") +
+  theme_solarized()
 
 ```
 
@@ -668,7 +707,8 @@ ratiosDf %>%
                  stat = "count") +
   ggtitle("Tests taken") +
   xlab("Test") +
-  scale_x_discrete(labels = c("0" = "SST", "1" = "DST", "2" = "SOCPT"))
+  scale_x_discrete(labels = c("0" = "SST", "1" = "DST", "2" = "SOCPT")) +
+  theme_solarized()
 ```
 
 This would probably alter the accuracy of the future predictions. The original study based its analysis on the combination of SST and DST, and though every patient took the SST (Static Spiral Test), some DST (Dynamic Spiral Test) were missing from the dataset. This issue is detailed and handled on section IV-A Test inconsistency.
@@ -736,7 +776,7 @@ testIndexT2Parkinsons <- sample(1:nrow(subTest2Parkinsons),
                                 floor(nrow(subTest2Parkinsons) * 0.1) + 1) 
 
 testIndexCtrl <- sample(1:nrow(subControls), 
-                        floor(nrow(subControls)*0.1)+1) 
+                        floor(nrow(subControls) * 0.1) + 1) 
 
 testIndexParkinsons <- sample(1:nrow(subParkinsons), 
                               floor(nrow(subParkinsons) * 0.1) + 1) 
@@ -805,7 +845,14 @@ $$\left\{
 
 I built a method which would estimate the difference between the Archimedean Spiral and the patient's drawing to be used for the analysis of the first two tests, using the `rgeos` package and the notion of `Spatial points` to work with spatial coordinates.
 
-The logic behind the algorithm was quite simple. I defined four variables in the `patients` dataframe, `areaT0` (the area between the drawing of the SST and the Archimedean spiral),  `areaT1` (the area between the drawing of the DST and the Archimedean spiral), `sdT0` (the standard deviation between the SST and the Archimedean spiral), `sdT1` (the standard deviation between the DST and the Archimedean spiral). For each unique point on the drawing (SST and DST), I determined the closest point on the Archimedean spiral using `gDistance` of the `rgeos` package and `which.min`. I then calculated the distance using :
+The logic behind the algorithm was quite simple. I defined four variables in the `patients` dataframe :
+
+* `areaT0` (the area between the drawing of the SST and the Archimedean spiral)
+* `areaT1` (the area between the drawing of the DST and the Archimedean spiral)
+* `sdT0` (the standard deviation between the SST and the Archimedean spiral)
+* `sdT1` (the standard deviation between the DST and the Archimedean spiral)
+
+For each unique point on the drawing (SST and DST), I determined the closest point on the Archimedean spiral using `gDistance` of the `rgeos` package and `which.min`. I then calculated the distance using :
 $$d_i = \sqrt{(x_{test}-x_{spiral})^2 + (y_{test}-y_{spiral})^2}$$
 With $d_i$ the distance of the point $i =(x_{test}, y_{test})$ of the drawing and it's closest point on the Archimedean spiral $(x_{spiral},y_{spiral})$. The area between the drawing and the spiral was approximated by :
 $$A_{T_i} = \sum_i{d_i}$$
@@ -889,7 +936,8 @@ for(test in seq(0, by = 1, length = 2)){
       temp_df <- left_join(temp_df, archimedeanSpiral, by = "nr")
       
       #calculate distance between each point of the sample and it's nearest neighbour on the Archimedean spiral
-      temp_df <- temp_df %>% mutate(dist = sqrt((X - x)^2 + (Y - y)^2)) %>% select(X, Y, dist)
+      temp_df <- temp_df %>% 
+        mutate(dist = sqrt((X - x)^2 + (Y - y)^2)) %>% select(X, Y, dist)
       
       #sum all the distances to approximate the area
       patients[p,][paste0("areaT", test)] <- sum(temp_df$dist)
@@ -902,30 +950,40 @@ for(test in seq(0, by = 1, length = 2)){
 }
 
 #plot the results (area difference and sd)
-plotComparingTestsWithArchimedeanSpiral <- patients %>% ggplot()
+plotComparingTestsWithArchimedeanSpiral <- patients %>% 
+  ggplot()
 
 plotT0Archi <- plotComparingTestsWithArchimedeanSpiral + 
   geom_histogram(aes(areaT0, 
                      fill = isPwp, 
-                     color = patientID), stat = "bin") +
-  xlab("Area difference (SST, Archimedean spiral)")
+                     color = patientID), 
+                 stat = "bin") +
+  xlab("Area difference (SST, Archimedean spiral)") +
+  theme_solarized()
 
 plotT1Archi <- plotComparingTestsWithArchimedeanSpiral + 
-  geom_histogram(aes(areaT1, fill=isPwp, color=patientID), stat="bin") +
-  xlab("Area difference (DST, Archimedean spiral)")
+  geom_histogram(aes(areaT1, fill = isPwp, color = patientID), 
+                 stat="bin") +
+  xlab("Area difference (DST, Archimedean spiral)") +
+  theme_solarized()
 
 plotSdT0Archi <- plotComparingTestsWithArchimedeanSpiral + 
-  geom_histogram(aes(sdT0, fill=isPwp, color=patientID), stat="bin") +
-  xlab("Standard deviation (SST, Archimedean spiral)")
+  geom_histogram(aes(sdT0, fill = isPwp, color = patientID), 
+                 stat = "bin") +
+  xlab("Standard deviation (SST, Archimedean spiral)") +
+  theme_solarized()
 
 plotSdT1Archi <- plotComparingTestsWithArchimedeanSpiral + 
-  geom_histogram(aes(sdT1, fill=isPwp, color=patientID), stat="bin") +
-  xlab("Standard deviation (DST, Archimedean spiral)")
+  geom_histogram(aes(sdT1, fill = isPwp, color = patientID), 
+                 stat = "bin") +
+  xlab("Standard deviation (DST, Archimedean spiral)") +
+  theme_solarized()
 
 ggarrange(plotT0Archi, 
           plotT1Archi, 
           plotSdT0Archi,
-          plotSdT1Archi, ncol=2, nrow=2, common.legend = TRUE)
+          plotSdT1Archi, 
+          ncol = 2, nrow = 2, common.legend = TRUE)
 
 ```
 
@@ -943,7 +1001,8 @@ $$\Delta = t_{DSTmax} - t_{SSTmax}$$
 #Initialisation of the values : 
 #total area difference between the drawing and the Archimedean spiral, 
 #and the standard deviation of the distance between the drawing and the spiral.
-patients <- patients %>% mutate(areaT0_T1 = NA, sdT0_T1 = NA)
+patients <- patients %>% 
+  mutate(areaT0_T1 = NA, sdT0_T1 = NA)
 
   #For every patient in the data set
   for(p in seq(1, by = 1, length = nrow(patients))){
@@ -1018,25 +1077,29 @@ plotAreaT0_T1 <- plotT0_T1 +
                      fill = isPwp, 
                      color = patientID), 
                  stat = "bin") +
-  xlab("Area difference (SST, DST)")
+  xlab("Area difference (SST, DST)") +
+  theme_solarized()
 
 plotSdT0_T1 <- plotT0_T1 + 
   geom_histogram(aes(sdT0_T1, 
                      fill = isPwp, 
                      color = patientID), 
                  stat = "bin") +
-  xlab("Standard deviation (SST, DST)")
+  xlab("Standard deviation (SST, DST)") +
+  theme_solarized()
 
 plotDiffTimesT0_T1 <- plotT0_T1 + 
   geom_histogram(aes(difft1_t0, 
                      fill = isPwp, 
                      color = patientID), 
                  stat = "bin") +
-  xlab("Time difference (SST, DST)")
+  xlab("Time difference (SST, DST)") +
+  theme_solarized()
 
 ggarrange(plotAreaT0_T1,
           plotSdT0_T1, 
-          plotDiffTimesT0_T1, ncol = 2, nrow = 2, common.legend = TRUE)
+          plotDiffTimesT0_T1, 
+          ncol = 2, nrow = 2, common.legend = TRUE)
 
 ```
 
@@ -1059,13 +1122,17 @@ patients <- patients %>% mutate(Z0_T2 = NA, DistT2 = NA)
       
       temp <- completeDf %>% 
         filter(patientID == id & TestID == 2) %>%
-        arrange(Timestamp) %>% select(X, Y, Z)
+        arrange(Timestamp) %>% 
+        select(X, Y, Z)
       
       if(nrow(temp)>0){
         
-        patients[index,]$Z0_T2 <- nrow(temp %>% filter(Z == 0))
+        patients[index,]$Z0_T2 <- nrow(temp %>% 
+                                         filter(Z == 0))
         
-        temp <- temp %>% select(X, Y) %>% unique()
+        temp <- temp %>% 
+          select(X, Y) %>% 
+          unique()
         dist <-0
         for(row in seq(2, by = 1, length = nrow(temp) - 1)){
           dist <- dist + sqrt((temp[row,]$X - temp[row-1,]$X)^2+(temp[row,]$Y - temp[row-1,]$Y)^2)
@@ -1162,7 +1229,7 @@ As seen in the Data Cleaning - Calibrating the samples section, the records were
 
 ### Missing software and informations
 
-Another issue was that I had no access to the software used to record the tests, nor to the configuration of the Archimedean spiral used for the tests. I did not have the frequency at which the SST blinked. My study and models were therefore limited. 
+Another issue was that I had no access to the software used to record the tests, nor to the configuration of the Archimedean spiral used for the tests. I did not have the frequency at which the DST blinked. My study and models were therefore limited. 
 
 ## Prediction algorithms
 
@@ -1259,7 +1326,6 @@ p_hat <- yhatDf %>%
 
 # Results
 
-The accuracy we got with this model was of one, the perfect accuracy. There was no need to improve the algorithm more. But, it should be treated cautiously. Since we do not have much data in the dataset, we have no certainty about the accuracy for the people with the disease at it's very first stage. It is also complicated to apprehend since we do not have access to the medical "score" for each patient, instead we have a binary result, healthy, or with Parkinson's. In the ideal scenario, we would have had access to a scale, with the "progress" of the disease (which stage at least).
 ```{r results}
 Yhat <- ifelse(p_hat > 0.5, 1, 0) %>% 
   factor()
@@ -1267,10 +1333,15 @@ Yhat <- ifelse(p_hat > 0.5, 1, 0) %>%
 results <- cbind(p_hat, Yhat, testingSet$isPwp)
 results
 
-confusionMatrix(Yhat, 
+acc <- confusionMatrix(Yhat, 
                 testingSet$isPwp %>% 
                   factor())$overall["Accuracy"]
+
+acc
 ```
+
+The accuracy we got with this model was of `r acc`, which is very high. But, it should be treated cautiously. Since we do not have much data in the dataset, we have no certainty about the accuracy for the people with the disease at it's very first stage. It is also complicated to apprehend since we do not have access to the medical "score" for each patient, instead we have a binary result, healthy, or with Parkinson's. In the ideal scenario, we would have had access to a scale, with the "progress" of the disease (which stage at least).
+
 
 
 # Conclusion
@@ -1281,6 +1352,13 @@ I believe that with more consistent datas and more information (and possibly mor
 
 
 # Sources and references
+
+Initial study "Improved spiral test using digitized graphics tablet for monitoring
+Parkinson’s disease" by Muhammed Erdem Isenkula, Betul Erdogdu Sakarb, Olcay Kursuna : https://pdfs.semanticscholar.org/83f6/c11e9ebab1dea4aa3c5a7f9eb692f33d17c1.pdf
+
+
+Data set, UCI : https://archive.ics.uci.edu/ml/datasets/Parkinson+Disease+Spiral+Drawings+Using+Digitized+Graphics+Tablet
+
 
 Brain anatomy : https://en.wikipedia.org/wiki/Midbrain
 
